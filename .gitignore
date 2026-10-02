@@ -1,0 +1,8 @@
+# Publish only the standalone website and its instructions.
+/*
+!/.gitignore
+!/DEPLOYMENT.md
+!/docs/
+/docs/*
+!/docs/index.html
+!/docs/.nojekyll
