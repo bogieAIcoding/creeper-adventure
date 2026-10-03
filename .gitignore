@@ -6,3 +6,7 @@
 /docs/*
 !/docs/index.html
 !/docs/.nojekyll
+!/backend/
+/backend/*
+!/backend/schema.sql
+!/backend/README.md

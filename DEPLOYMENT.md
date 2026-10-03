@@ -19,17 +19,19 @@ The iPad layout handles desktop-style user agents, visible Safari toolbar
 resizing and safe-area insets. Portrait displays a rotation message. Fullscreen
 and orientation locking are not required. Actual iOS and Android hardware
 testing is still required. Reloading starts a new game; checkpoints persist
-within the running session. Once loaded, gameplay makes no network requests,
-but offline page reload is not promised.
+within the running session. Once loaded, gameplay works without the network;
+the optional global leaderboard uses Supabase. Offline page reload is not
+promised. Pending completed scores and cached rankings persist in this browser
+where storage is available. See `backend/README.md` for backend setup and limits.
 
 ## Publish / update
 
 The development files stay in the local project. From that project, run:
 
 ```
-node build-portable.js
+node build-portable.js --pages
 node --test tests/*.test.js
-git add docs DEPLOYMENT.md
+git add docs backend DEPLOYMENT.md .gitignore
 git commit -m "Update Creeper Adventure"
 git push origin main
 ```
