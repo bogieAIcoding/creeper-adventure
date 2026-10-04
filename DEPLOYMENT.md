@@ -3,7 +3,16 @@
 A client-side Canvas platformer with three worlds, twelve stages, original
 procedural graphics and synthesized music. The GitHub Pages entry is
 `docs/index.html`: one self-contained file, with no external assets or runtime
-network requests. `.nojekyll` bypasses unnecessary Jekyll processing.
+asset requests. The optional global leaderboard uses Supabase.
+`.nojekyll` bypasses unnecessary Jekyll processing.
+
+All twelve stages and regular bosses are included. Completing all three worlds
+with zero deaths unlocks the cinematic and one-attempt Wither Storm encounter.
+Its victory grants 15,000 points and the true ending; ordinary deaths subtract
+2,000 points, bounded at zero. Interrupted secret attempts are spent. Apply
+`backend/migration-secret-storm.sql` before publishing this scoring revision.
+The local `wither-storm-test.html` and all development shortcuts are excluded
+from the published build.
 
 ## Play
 

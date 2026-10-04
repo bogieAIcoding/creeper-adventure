@@ -28,7 +28,7 @@ Tables have RLS enabled, no public policies, and no direct access for `anon` or
 best rank, without exposing identity IDs. The submit RPC requires `auth.uid()`;
 it checks name/type/size limits, a versioned level reward whitelist, unique and
 ordered rewards, all twelve stages, three boss rewards, world completion, death
-halving, and server-calculated speed bonuses. It derives the score and time.
+penalties, and server-calculated speed bonuses. It derives the score and time.
 Dates come from the server. Run UUIDs prevent duplicate submissions. Identical
 retries return the original result. Maximum five new accepted runs per identity
 per ten minutes; Supabase Auth also has its own signup/IP limits.
@@ -61,3 +61,27 @@ Never enable client DELETE permissions to clean test data.
 Reward IDs belong to this scoring/level revision. If level generation or scoring
 changes, version the validation rules before publishing to avoid accepting old
 clients under new rules. Supabase availability and account quota still apply.
+
+## Secret encounter scoring revision
+
+Before publishing this revision, open the existing Supabase project → SQL Editor
+→ New query. Paste the **entire** `backend/migration-secret-storm.sql` file and
+click Run. Do not rerun the original `schema.sql` afterward: that would reinstall
+the old RPC definitions. Existing projects need only the new migration; a fresh
+project needs `schema.sql` first, then this migration. No frontend key changes
+are needed. Test live RPCs after applying it before publishing. This release's
+live checks verified the revised RPCs, protected tables and submission limits.
+
+This additive migration preserves all existing scores and ranking order, adds
+`scoring_version` and `secret_victory`, and keeps RLS/direct-write restrictions.
+Old clients keep their original scoring rules. New histories start with
+`rules:2` and subtract 2,000 per ordinary death, bounded at zero. Zero-death new
+runs must record the concluded secret attempt. Nine ordered weak-point hits
+followed by `secret:victory` grant exactly 15,000; failure grants nothing and
+does not add a normal death penalty. The indicator is returned by the read RPC.
+
+The server verifies scoring history, qualification, ordered hits, and one final
+outcome per run UUID. It cannot prove that a client really performed the fight:
+fabricated consistent telemetry remains possible, as with the existing game.
+The client saves the attempt before entry; an interrupted/reloaded attempt is
+spent and becomes a preserved three-world result, never an arena respawn.

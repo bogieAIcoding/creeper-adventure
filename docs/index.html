@@ -37,6 +37,7 @@
 .toast.visible{transform:translateY(0)}
 .game-shell.end-world{border-color:#6c567c}.end-world .health-panel,.end-world .loot-panel{background:#241c35bd}.end-world .level-panel strong{color:#ead2ff}
 .screen.modal h1{overflow-wrap:anywhere}
+.storm-health{grid-column:1/-1;justify-self:center;max-width:95%;padding:4px 12px;border:1px solid #b478d7;border-radius:3px;color:#f3deff;font:bold 10px monospace;text-align:center}.storm-health[hidden]{display:none}
 /* Compact run UI; all player-provided strings are inserted with textContent. */
 .player-name-label{display:grid;gap:5px;margin:12px 0 0;font:10px monospace;letter-spacing:1px}
 #player-name{width:min(280px,100%);min-height:44px;font:16px Arial,sans-serif;padding:8px 10px;border:1px solid #60885b;border-radius:4px;background:#f4ffe3;color:#203827;touch-action:manipulation;user-select:text;-webkit-user-select:text}
@@ -371,7 +372,7 @@
     reset(worldIndex=0,carry=false){
       const world2Unlocked=!!this.world2Unlocked;
       const saved=carry?{gems:this.gems,powerups:this.powerups,score:this.score,deaths:this.deaths,elapsed:this.elapsed,health:this.player.health}:null;
-      if(!carry){this.scoreTrace=[];this.onlineRunId=null;this.awarded=new Set();this.worldElapsed=[0,0,0];this.timeBonuses=[0,0,0];this.enemiesDefeated=0;this.bossesDefeated=0;this.completionTime=null;this.playerName='';}
+      if(!carry){this.scoreTrace=['rules:2'];this.secretStatus='none';this.secretTime=0;this.onlineRunId=null;this.awarded=new Set();this.worldElapsed=[0,0,0];this.timeBonuses=[0,0,0];this.enemiesDefeated=0;this.bossesDefeated=0;this.completionTime=null;this.playerName='';}
       this.countdown=WORLD_SECONDS;this.deathReason='';
       this.level=worldIndex===2?makeEndLevel():worldIndex===1?makeNetherLevel():makeLevel();this.player={x:132,y:470,w:30,h:46,vx:0,vy:0,grounded:false,facing:1,walk:0,health:saved?saved.health:3,invincible:0,coyote:0,jumpBuffer:0,platform:null,jumpsUsed:0,doubleFlash:0,damageFlash:0,shield:0};
       this.state='start';this.time=0;this.elapsed=saved?saved.elapsed:0;this.camera=0;this.gems=saved?saved.gems:0;this.powerups=saved?saved.powerups:0;this.score=saved?saved.score:0;this.deaths=saved?saved.deaths:0;this.checkpoint={x:132,y:470};this.events=[];this.particles=[];this.activeEnemies=[];this.deathTime=0;this.region=0;this.worldIndex=worldIndex;this.stageIndex=0;this.world2Unlocked=world2Unlocked;this.shake=0;this.lastJump=false;
@@ -385,6 +386,7 @@
     award(key,points,x=this.player.x,y=this.player.y){key=this.worldIndex+':'+key;if(this.awarded.has(key))return false;this.awarded.add(key);this.scoreTrace.push(key);this.score+=points;if(points>0)this.emit('points',{points,x,y});return true;}
     advanceClock(dt){
       if(this.state!=='playing'||!Number.isFinite(dt)||dt<=0)return;
+      if(this.secretActive()){this.secretTime+=dt;return;}
       const active=Math.min(dt,this.countdown);this.elapsed+=active;this.worldElapsed[this.worldIndex]+=active;this.countdown=Math.max(0,this.countdown-dt);
       if(this.countdown<1e-8){this.countdown=0;this.die('timeout');}
     }
@@ -397,8 +399,9 @@
     start(){if(this.state==='start'){this.state='playing';this.emit('start');}}
     pause(){if(['playing','cinematic','victory'].includes(this.state)){this.resumeState=this.state;this.state='paused';}else if(this.state==='paused')this.state=this.resumeState||'playing';}
     beginCinematic(){this.state='cinematic';this.cinematic={time:0,duration:this.worldIndex===1?15:12,cue:0,destination:this.worldIndex+1};this.world2Unlocked=true;this.emit('cinematic');}
-    advanceWorld(){if(['cinematic','complete'].includes(this.state)&&this.worldIndex<2&&this.world2Unlocked){const next=this.worldIndex+1;this.reset(next,true);this.start();this.emit(next===2?'world3':'world2');}}
+    advanceWorld(){if(this.state==='cinematic'&&this.cinematic.secret){this.enterSecret();return;}if(['cinematic','complete'].includes(this.state)&&this.worldIndex<2&&this.world2Unlocked){const next=this.worldIndex+1;this.reset(next,true);this.start();this.emit(next===2?'world3':'world2');}}
     retry(){
+      if(this.secretStatus==='pending'||this.secretActive()){this.finishSecret(false);return;}
       if(this.state==='complete'){this.reset();return;}
       if(this.state==='playing')this.die('restart');
       if(!this.checkpoint||!Number.isFinite(this.checkpoint.x)||!Number.isFinite(this.checkpoint.y)||this.checkpoint.x<0||this.checkpoint.x>=this.level.width){const flag=this.level.checkpoints.find(f=>f.region===this.stageIndex);this.checkpoint={x:flag?flag.x+25:132,y:470};}
@@ -449,7 +452,7 @@
     burst(x,y,color,count=12,style='square'){if(this.particles.length>260)return;for(let i=0;i<count;i++)this.particles.push({x,y,vx:Math.cos(i*2.4)*90*(1+i%3*.3),vy:-80-Math.sin(i*1.7)*100,life:.55+i%3*.15,max:.85,color,size:3+i%3,style});}
     updateParticles(dt){let write=0;for(let i=0;i<this.particles.length;i++){const bit=this.particles[i];bit.life-=dt;if(bit.life<=0)continue;bit.x+=bit.vx*dt;bit.y+=bit.vy*dt;bit.vy+=460*dt;this.particles[write++]=bit;}this.particles.length=write;}
     damage(source){const p=this.player;if(p.invincible>0||p.shield>0||this.state!=='playing')return;p.health--;p.invincible=1.6;p.damageFlash=.22;p.jumpsUsed=Math.max(1,p.jumpsUsed);p.vy=-300;p.vx=p.x<(source.x+source.w/2)?-230:230;this.shake=.24;this.burst(p.x+15,p.y+20,'#e7a47c',12);this.emit('damage');if(p.health<=0)this.die();}
-    die(reason='damage'){if(this.state!=='playing'||this.player.shield>0&&!['timeout','restart'].includes(reason))return;this.state='dead';this.deathReason=reason;this.deaths++;this.scoreTrace.push('death');this.score=Math.floor(Math.max(0,this.score)/2);this.deathTime=0;this.player.health=0;this.player.vy=-310;this.player.vx*=.3;this.burst(this.player.x+15,Math.min(this.player.y+20,580),'#8ccc65',24);this.emit('death');}
+    die(reason='damage'){if(this.state!=='playing'||this.player.shield>0&&!['timeout','restart'].includes(reason))return;if(this.secretActive()){this.player.health=0;this.finishSecret(false);return;}this.state='dead';this.deathReason=reason;this.deaths++;this.scoreTrace.push('death');this.score=Math.max(0,this.score-2000);this.deathTime=0;this.player.health=0;this.player.vy=-310;this.player.vx*=.3;this.burst(this.player.x+15,Math.min(this.player.y+20,580),'#8ccc65',24);this.emit('death');}
     killEnemy(enemy,cause='stomp'){if(!enemy.alive)return;enemy.alive=false;enemy.deadTime=0;enemy.respawning=0;enemy.platform=null;enemy.vx=0;enemy.vy=0;if(ENEMY_TYPES[enemy.type].flying){enemy.warning=0;enemy.attackTime=3.2+enemy.id%3*.6;}if(cause!=='fall'&&this.award('enemy:'+enemy.id,POINTS.enemy,enemy.x,enemy.y))this.enemiesDefeated++;this.burst(enemy.x+enemy.w/2,enemy.y+enemy.h/2,ENEMY_TYPES[enemy.type].color,14);if(cause!=='fall')this.emit(cause==='crush'?'crush':'stomp');}
     updateMover(mover){
       const oldX=mover.x,oldY=mover.y;
@@ -562,10 +565,71 @@
       this.updateProjectiles(b.fire,dt);
       if(b.heads.every(h=>h.health===0)){b.defeated=true;if(this.award('boss',POINTS.boss,b.x,b.y))this.bossesDefeated++;b.fire.length=0;for(const h of b.heads){h.beamTime=h.warning=0;}this.burst(b.x+80,b.y+60,'#b985ed',60,'spark');this.emit('bossDefeat');}
     }
+    secretActive(){return this.secretStatus==='active';}
+    qualifiesSecret(){return this.worldIndex===2&&this.deaths===0&&this.bossesDefeated===3&&[0,1,2].every(n=>this.awarded.has(n+':world')&&this.awarded.has(n+':boss'));}
+    beginSecret(){
+      if(this.secretStatus!=='none'||!this.qualifiesSecret())return false;
+      // Reserve the one attempt before the cinematic. Reloading cannot resume it.
+      this.secretStatus='pending';this.scoreTrace.push('secret:enter');this.player.shield=0;
+      this.state='cinematic';this.cinematic={secret:true,time:0,duration:12,cue:0};this.emit('secretReserved');return true;
+    }
+    enterSecret(){
+      if(this.secretStatus!=='pending')return false;
+      const tiles=[],tilesByColumn=Array.from({length:560},()=>[]);
+      for(let col=0;col<32;col++)for(let row=11;row<14;row++){const tile={x:col*TILE,y:row*TILE,w:TILE,h:TILE,type:'obsidian'};tiles.push(tile);tilesByColumn[col].push(tile);}
+      const movers=[{id:'storm-lift',x:520,y:424,baseX:520,baseY:424,w:144,h:24,type:'endbrick',axis:'y',range:48,period:5,phase:0,solid:true,opacity:1,dx:0,dy:0},
+        {id:'storm-bridge',x:840,y:432,baseX:840,baseY:432,w:96,h:24,type:'obsidian',axis:'x',range:48,period:6,phase:1,solid:true,opacity:1,dx:0,dy:0,disappear:8,disappearPhase:0}];
+      const boss={kind:'storm',x:1000,y:70,w:400,h:390,startX:1000,health:9,maxHealth:9,combatPhase:1,phase:0,attackTime:3,warning:0,vulnerable:0,hitCooldown:0,damageFlash:0,fire:[],beamTime:0,tentacleTime:0,targetX:0,targetY:0,defeated:false,collapse:0,portalOpen:false,weak:{x:770,y:410,w:52,h:30}};
+      this.level={secret:true,tiles,tilesByColumn,movers,boss,width:32*TILE,items:[],enemies:[],hazards:[],projectiles:[],lava:[],decorations:[],checkpoints:[],gaps:[],regions:['The last silence','The last silence','The last silence','Wither Storm'],goal:{x:1450,y:384,w:72,h:144}};
+      Object.assign(this.player,{x:300,y:482,vx:0,vy:0,health:3,shield:0,invincible:0,damageFlash:0,healFlash:.6,jumpsUsed:0,grounded:true,coyote:.11,jumpBuffer:0,platform:null});
+      this.secretStatus='active';this.state='playing';this.region=this.stageIndex=3;this.camera=0;this.time=0;this.lastJump=false;this.particles.length=0;this.events.length=0;this.emit('secretStart');return true;
+    }
+    finishSecret(won){
+      if(!['pending','active'].includes(this.secretStatus))return false;
+      if(won&&(!this.level.secret||this.level.boss.health!==0))return false;
+      this.secretStatus=won?'won':'failed';this.scoreTrace.push(won?'secret:victory':'secret:failed');
+      if(this.level.secret){const b=this.level.boss;b.fire.length=0;b.warning=b.beamTime=b.tentacleTime=0;}
+      if(won){this.score+=15000;this.emit('points',{points:15000,x:this.player.x,y:this.player.y});this.burst(this.level.boss.x,this.level.boss.y+180,'#e6baff',70,'spark');}
+      this.player.shield=0;this.player.vx=this.player.vy=0;this.state='victory';this.victoryTime=0;this.emit('secretResolved',{won});return true;
+    }
+    stormBeam(){const b=this.level.boss;return{x:b.targetX-54,y:200,w:108,h:328};}
+    stormTentacle(){const b=this.level.boss;return{x:b.targetX-82,y:480,w:164,h:48};}
+    updateStorm(dt,previousBottom,previousX){
+      const b=this.level.boss,p=this.player;
+      if(!this.secretActive())return;
+      b.phase+=dt;b.hitCooldown=Math.max(0,b.hitCooldown-dt);b.damageFlash=Math.max(0,b.damageFlash-dt);b.vulnerable=Math.max(0,b.vulnerable-dt);
+      b.beamTime=Math.max(0,b.beamTime-dt);b.tentacleTime=Math.max(0,b.tentacleTime-dt);
+      b.x=b.startX+Math.sin(b.phase*.45)*22;b.y=70+Math.sin(b.phase*.6)*14;
+      b.weak.x=770+Math.sin(b.phase*.5)*40;b.weak.y=b.combatPhase===3?350:b.combatPhase===2?390:410;
+      b.attackTime-=dt;
+      if(b.attackTime<=1.2&&!b.warning){b.warning=1.2;b.targetX=p.x+p.w/2;b.targetY=p.y+p.h/2;this.emit('stormWarning');}
+      if(b.warning>0)b.warning=Math.max(.001,b.warning-dt);
+      if(b.attackTime<=0){
+        // All heads aim once at the warning; no homing or random hazards.
+        for(let i=0;i<b.combatPhase;i++){const x=b.x-15,y=170+i*68,dx=b.targetX-x,dy=b.targetY-y,length=Math.hypot(dx,dy)||1;
+          b.fire.push({x,y,w:18,h:18,vx:dx/length*(280+i*25),vy:dy/length*(280+i*25),life:2.1,purple:true});}
+        b.warning=0;b.attackTime=[0,6.8,6.2,5.8][b.combatPhase];b.vulnerable=4.8;
+        b.tentacleTime=b.combatPhase===1&&Math.floor(b.phase/6)%2===0?0:.65;b.beamTime=b.combatPhase>1?.85:0;this.emit('stormFire');
+      }
+      this.updateProjectiles(b.fire,dt);if(!this.secretActive())return;
+      if(b.tentacleTime>0&&overlaps(p,this.stormTentacle()))this.damage(this.stormTentacle());
+      if(b.beamTime>0&&overlaps(p,this.stormBeam())){
+        // Modest, bounded pull: running or jumping can always escape the lane.
+        p.x+=clamp(b.targetX-p.x,-1,1)*55*dt;
+        if(p.y+p.h>490)this.damage(this.stormBeam());
+      }
+      if(!this.secretActive())return;
+      if(overlaps(p,b)){this.damage(b);p.x=previousX<b.x?b.x-p.w:b.x+b.w;p.vx=0;}
+      const before=b.health;if(this.stompCore(b,previousBottom)){
+        this.scoreTrace.push('secret:hit:'+(9-b.health));const phase=b.health>6?1:b.health>3?2:3;
+        if(phase!==b.combatPhase){b.combatPhase=phase;b.fire.length=0;b.beamTime=b.tentacleTime=0;b.warning=0;b.attackTime=3;this.emit('stormPhase',{phase});}
+      }
+      if(before>0&&b.health===0){b.defeated=true;this.finishSecret(true);}
+    }
     step(dt,input={},clock=true){
       if(this.state==='paused'||this.state==='complete')return;this.time+=dt;this.updateParticles(dt);if(this.state==='start')return;
-      if(this.state==='cinematic'){const film=this.cinematic;film.time+=dt;const cue=[2,4,7,10][film.cue];if(film.time>=cue){this.emit(['portalEnter','portalTunnel',film.destination===2?'endReveal':'netherReveal','portalEmerge'][film.cue++]);}if(film.time>=film.duration)this.advanceWorld();return;}
-      if(this.state==='victory'){this.victoryTime+=dt;if(this.victoryTime>=(this.worldIndex===2?6:2.4)){this.state='complete';this.emit('complete');}return;}
+      if(this.state==='cinematic'){const film=this.cinematic;film.time+=dt;if(film.secret){while(film.cue<4&&film.time>=[2,4,6,8][film.cue])this.emit(['stormLightning','stormShadow','stormReveal','stormRoar'][film.cue++]);}else{const cue=[2,4,7,10][film.cue];if(film.time>=cue){this.emit(['portalEnter','portalTunnel',film.destination===2?'endReveal':'netherReveal','portalEmerge'][film.cue++]);}}if(film.time>=film.duration)this.advanceWorld();return;}
+      if(this.state==='victory'){this.victoryTime+=dt;if(this.victoryTime>=(this.worldIndex===2?6:2.4)){if(this.secretStatus==='none'&&this.beginSecret())return;this.state='complete';this.emit('complete');}return;}
       if(this.state==='dead'){this.deathTime+=dt;this.player.y+=this.player.vy*dt;this.player.vy+=900*dt;return;}
       if(clock)this.advanceClock(dt);if(this.state!=='playing')return;this.shake=Math.max(0,this.shake-dt);const p=this.player;for(const mover of this.level.movers)this.updateMover(mover);
       if(p.platform&&!p.platform.solid){p.platform=null;p.grounded=false;}else if(p.platform){p.x+=p.platform.dx;p.y+=p.platform.dy;}
@@ -581,7 +645,8 @@
       for(const enemy of this.level.enemies)this.updateEnemy(enemy,dt);this.separateEnemies();for(const enemy of this.level.enemies)if(enemy.alive&&overlaps(p,enemy)){if(p.vy>50&&previousBottom<=enemy.y+13){this.killEnemy(enemy);p.vy=-390;p.grounded=false;p.platform=null;p.jumpsUsed=1;}else this.damage(enemy);}
       for(const hazard of this.level.hazards)this.updateHazard(hazard,dt);
       if(this.worldIndex>0)this.updateProjectiles(this.level.projectiles,dt);
-      this.updateBoss(dt,previousBottom,previousX);
+      if(this.secretActive())this.updateStorm(dt,previousBottom,previousX);else this.updateBoss(dt,previousBottom,previousX);
+      if(this.level.secret){const targetCamera=clamp(p.x-WIDTH*.45,0,this.level.width-WIDTH);this.camera+=(targetCamera-this.camera)*(1-Math.exp(-6*dt));return;}
       for(const flag of this.level.checkpoints)if(this.state==='playing'&&!flag.active&&p.x>flag.x){flag.active=true;this.scoreTrace.push(this.worldIndex+':stage:'+flag.region);this.checkpoint={x:flag.x+25,y:470};this.emit('checkpoint',{region:flag.region});this.burst(flag.x,flag.y-65,'#d0f591',20);}
       const oldRegion=this.region;this.region=clamp(Math.floor(p.x/REGION),0,3);this.stageIndex=this.region;if(this.worldIndex>0&&oldRegion!==this.region)this.emit('stage',{region:this.region});const targetCamera=clamp(p.x-WIDTH*.34,0,this.level.width-WIDTH);this.camera+=(targetCamera-this.camera)*(1-Math.exp(-6*dt));if(this.state==='playing'&&overlaps(p,this.level.goal)&&this.level.boss.portalOpen){
         this.completeWorld();this.burst(p.x,p.y,'#d9ffa7',60,'spark');
@@ -929,11 +994,32 @@
           break;
         case 'dragonwarning':
         case 'wardenwarning':
+        case 'stormwarning':
           note(165, 0.32, 0, 'sawtooth', 230, 0.045);
           note(220, 0.22, 0.28, 'triangle', 285, 0.05);
           break;
+        case 'stormrumble':
+          note(48,1.8,0,'sine',25,.11);note(72,1.4,.1,'sawtooth',32,.035);
+          this._noise({duration:.85,volume:.07,filter:'lowpass',frequency:180});
+          break;
+        case 'stormlightning':
+          this._noise({duration:.28,volume:.085,filter:'highpass',frequency:1600});note(115,.65,.08,'sawtooth',35,.055);
+          break;
+        case 'stormshadow':
+        case 'stormreveal':
+          note(55,1.4,0,'triangle',110,.07);note(82,1.1,.15,'sine',165,.045);
+          break;
+        case 'stormroar':
+          note(90,1.5,0,'sawtooth',28,.075);note(63,1.8,.12,'triangle',30,.08);
+          this._noise({duration:.85,volume:.085,filter:'bandpass',frequency:370});
+          break;
+        case 'stormcollapse':
+          note(100,1.5,0,'sawtooth',25,.06);this._noise({duration:.8,volume:.06,filter:'lowpass',frequency:600});
+          [392,494,587,784].forEach((f,i)=>note(f,.55,1.6+i*.16,'sine',f,.055));
+          break;
         case 'dragonfire':
         case 'wardenpulse':
+        case 'stormfire':
           note(240, 0.2, 0, 'sawtooth', 85, 0.075);
           this._noise({ duration: 0.18, volume: 0.045, filter: 'lowpass', frequency: 1100 });
           break;
@@ -1121,6 +1207,24 @@
     }
 
     _scheduleMusicStep(step, at, stepLength) {
+      if(this.musicScene==='stormfilm'){
+        // Sparse, original tritone drones replace the cheerful victory loop.
+        const root=[28,28,31,27][Math.floor(step/8)%4];
+        if(step%8===0){this._musicTone(root,stepLength*7.6,at,'triangle',.065);this._musicTone(root+18,stepLength*7,at,'sine',.025);}
+        if(step%2===0)this._musicTone(root+12+(step%4?6:0),stepLength*1.5,at,'sawtooth',.018);
+        if(step%4===0)this._noise({duration:.18,at,volume:.026,filter:'lowpass',frequency:210,channel:'music'});return;
+      }
+      if(this.musicScene==='trueending'){
+        const root=[55,60,57,62][Math.floor(step/8)%4];
+        if(step%4===0){this._musicTone(root-12,stepLength*3.8,at,'triangle',.055);this._musicTone(root+4,stepLength*3.6,at,'sine',.035);}
+        this._musicTone(root+[0,7,12,16][Math.floor(step/2)%4],stepLength*1.6,at,'sine',.04);return;
+      }
+      if(this.musicScene==='storm'){
+        const root=[33,33,36,32,33,38,36,31][Math.floor(step/4)%8];
+        if(step%4===0){this._musicTone(root-12,stepLength*3.8,at,'sawtooth',.035);this._noise({duration:.2,at,volume:.035,filter:'lowpass',frequency:270,channel:'music'});}
+        this._musicTone(root+[0,7,10,13][step%4],stepLength*.72,at,'triangle',.055);
+        if(step%8===6)this._musicTone(root+24,stepLength*2,at,'sine',.035);return;
+      }
       if(this.musicScene==='nether'){
         const roots=[38,38,41,36,38,43,41,37],root=roots[Math.floor(step/8)%8];
         if(step%4===0){this._musicTone(root-12,stepLength*3.5,at,'triangle',.078);this._noise({duration:.16,at,volume:.03,filter:'lowpass',frequency:420,channel:'music'});}
@@ -1189,6 +1293,7 @@
     /* Optional state helper: sound.sync('playing' | 'paused' | ...). */
     sync(state) {
       if (state === 'playing'||state==='cinematic') return this.musicPaused ? this.resumeMusic() : this.startMusic({scene:this.musicScene||'game'});
+      if (state === 'victory' && this.musicPaused) return this.resumeMusic();
       if (state === 'paused') return this.pauseMusic();
       if (state === 'start' || state === 'dead' || state === 'complete') return this.stopMusic();
       return false;
@@ -1487,11 +1592,94 @@
         else{this.portal({x:54,y:390,w:72,h:138},t);this.player(player,t);c.textAlign='center';c.font='bold 34px monospace';c.fillStyle='#e5c6ff';c.fillText('WORLD III — THE END',W/2,178);c.font='16px monospace';c.fillText('ONE LAST LEAP INTO THE UNKNOWN',W/2,211);c.textAlign='left';}}
       if(t>2&&t<12)for(let n=0;n<55;n++){const angle=n*2.4+t,r=25+(n*37+t*160)%680;c.globalAlpha=.6;this.rect(W/2+Math.cos(angle)*r,H/2+Math.sin(angle)*r*.6,4,4,'#d4adff');}c.globalAlpha=1;this.rect(0,0,W,38,'#090713');this.rect(0,H-38,W,38,'#090713');
     }
+    storm(b,time,cinematic=false){
+      const c=this.ctx,x=b.x,y=b.y;const flash=b.damageFlash>0;
+      // Original procedural silhouette: three skulls, broken armor, six tendrils.
+      this.rect(x+55,y+90,290,220,flash?'#9071ae':'#181322');this.rect(x+20,y+142,365,110,'#282035');
+      for(let n=0;n<35;n++)this.rect(x+48+hash(n)*300,y+94+hash(n+53)*205,18,12,n%3?'#332841':'#443153');
+      this.rect(x+150,y+155,64,60,'#976740');this.rect(x+156,y+161,52,48,b.combatPhase===3?'#e1a769':'#604737');
+      for(let n=0;n<4;n++){this.rect(x+162+n%2*24,y+166+Math.floor(n/2)*20,14,12,'#d5b574');this.rect(x+165+n%2*24,y+169+Math.floor(n/2)*20,6,5,'#554435');}
+      for(let arm=0;arm<6;arm++)for(let n=0;n<15;n++){
+        const tx=x+55+arm*48+Math.sin(time*1.8+n*.24+arm)*18+n*(arm<3?-11:8),ty=y+255+n*12;
+        this.rect(tx,ty,24-n*.6,17,'#201629');this.rect(tx+3,ty+2,5,12,n%4?'#45304f':'#8d50a5');}
+      for(let i=0;i<3;i++){const hx=x-50+i*126,hy=y+30+(i===1?-20:12)+Math.sin(time*2+i)*8,active=i<b.combatPhase;
+        this.rect(hx+25,hy+68,42,70,'#23192d');this.rect(hx,hy,92,80,flash?'#9767ab':'#2e2338');this.rect(hx-8,hy+42,108,34,'#1b1423');
+        this.rect(hx+10,hy+21,28,13,active?(b.warning?'#ffe6ff':'#c967ff'):'#5e416a');this.rect(hx+53,hy+21,27,13,active?'#d580ff':'#5e416a');
+        for(let tooth=0;tooth<5;tooth++)this.rect(hx+10+tooth*15,hy+53,7,14,'#82668d');this.rect(hx+41,hy+36,10,13,'#140e1a');}
+      if(cinematic)return;
+      const core=b.weak,open=b.vulnerable>0;c.save();c.strokeStyle='#ba63f777';c.lineWidth=5;c.setLineDash([12,9]);c.beginPath();c.moveTo(x+100,y+180);c.lineTo(core.x+26,core.y+15);c.stroke();c.restore();
+      this.rect(core.x-8,core.y-8,core.w+16,core.h+16,open?'#c381ff66':'#47304f');this.rect(core.x,core.y,core.w,core.h,flash?'#fff1ff':b.combatPhase===3?(open?'#e1a866':'#71533d'):'#41304f');
+      if(b.combatPhase===3)for(let n=0;n<3;n++){this.rect(core.x+5+n*15,core.y+5,10,6,'#ffdf9d');this.rect(core.x+5+n*15,core.y+17,10,7,open?'#fff2cc':'#543b36');}
+      else{this.rect(core.x+6,core.y+7,13,8,open?'#efb8ff':'#735181');this.rect(core.x+33,core.y+7,13,8,open?'#efb8ff':'#735181');this.rect(core.x+22,core.y+18,10,8,'#24172e');}
+      c.textAlign='center';c.font='bold 13px monospace';c.fillStyle=open?'#ffe7a9':'#c291d6';c.fillText(open?(b.combatPhase===3?'STOMP THE FINAL CORE!':'STOMP THE HEAD!'):'DODGE · WAIT FOR THE GLOW',core.x+26,core.y-18);c.textAlign='left';
+    }
+    stormScene(world){
+      if(world.secretStatus==='won'&&(world.state==='victory'||world.state==='paused'&&world.resumeState==='victory')){this.trueEnding(world);return;}
+      const c=this.ctx,b=world.level.boss,t=world.time;
+      c.setTransform(1,0,0,1,0,0);const sky=c.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#09070f');sky.addColorStop(1,'#442049');c.fillStyle=sky;c.fillRect(0,0,W,H);
+      for(let n=0;n<18;n++){const x=n*90-world.camera*.2;this.rect(x,340+hash(n)*70,65,220,'#1d132a');this.rect(x+18,290+hash(n)*60,30,80,'#24172f');}
+      for(let n=0;n<35;n++){const angle=n*2.4+t*.3,r=80+hash(n)*450;this.rect(850-world.camera+Math.cos(angle)*r,210+Math.sin(angle)*r*.5,4,4,n%2?'#a760cc':'#67367e');}
+      c.save();c.translate(-Math.round(world.camera),0);
+      for(const tile of world.level.tiles)if(tile.x>world.camera-48&&tile.x<world.camera+W)this.tile(tile);
+      for(const m of world.level.movers){c.globalAlpha=m.opacity;this.rect(m.x,m.y,m.w,m.h,'#463151');this.rect(m.x,m.y,m.w,4,'#b58cc9');c.globalAlpha=1;}
+      if(b.warning){const target=world.stormTentacle();c.save();c.globalAlpha=.45+Math.sin(t*16)*.15;this.rect(target.x,518,target.w,10,'#ce71e9');c.strokeStyle='#e6adff';c.setLineDash([10,8]);c.strokeRect(target.x,480,target.w,48);if(b.combatPhase>1){const beam=world.stormBeam();c.strokeRect(beam.x,beam.y,beam.w,beam.h);}c.restore();}
+      if(b.beamTime>0){const beam=world.stormBeam();this.rect(beam.x,beam.y,beam.w,beam.h,'#a350cd66');for(let n=0;n<12;n++)this.rect(beam.x+12+(n%3)*29,200+(n*33-t*140)%328,16,8,'#df98f3');}
+      if(b.tentacleTime>0){const hit=world.stormTentacle();this.rect(hit.x,hit.y,hit.w,hit.h,'#3b2546');this.rect(hit.x,hit.y,hit.w,8,'#b263cc');}
+      c.save();if(b.defeated){c.globalAlpha=Math.max(0,1-world.victoryTime/2);c.translate(b.x+200,b.y+190);c.rotate(world.victoryTime*.2);c.translate(-b.x-200,-b.y-190);}this.storm(b,t);c.restore();for(const f of b.fire){this.rect(f.x-6,f.y-4,26,24,'#aa55de55');this.rect(f.x,f.y,18,18,'#a358db');this.rect(f.x+5,f.y+5,8,8,'#f1c6ff');}
+      this.player(world.player,t);for(const bit of world.particles){c.globalAlpha=Math.min(1,bit.life/bit.max);this.rect(bit.x,bit.y,bit.size,bit.size,bit.color);}c.globalAlpha=1;c.restore();
+      if(world.state==='victory')this.ending(world);
+    }
+    stormCinematic(world){
+      const c=this.ctx,t=world.cinematic.time,zoom=1-Math.min(1,t/8)*.16;
+      // Cache the existing landscape once rather than redrawing its whole level.
+      if(this.stormBackdropLevel!==world.level){this.draw({...world,state:'film-scene',camera:world.level.goal.x-W*.7,hidePlayer:true,particles:[],shake:0});this.stormBackdrop||=document.createElement('canvas');this.stormBackdrop.width=W;this.stormBackdrop.height=H;this.stormBackdrop.getContext('2d').drawImage(this.canvas,0,0);this.stormBackdropLevel=world.level;}
+      c.setTransform(1,0,0,1,0,0);this.rect(0,0,W,H,'#090611');
+      c.save();const shake=t<2?3:t>=8&&t<9?10:2;
+      c.translate(W/2+Math.sin(t*49)*shake,H/2+Math.cos(t*37)*shake*.5);c.scale(zoom,zoom);c.translate(-W/2,-H/2);
+      // Reuse the final End landscape as a tableau; no simulation runs here.
+      c.drawImage(this.stormBackdrop,0,0);
+      c.globalAlpha=Math.min(.88,.3+t*.07);this.rect(0,0,W,H,'#10071c');c.globalAlpha=1;
+      for(let n=0;n<6;n++){const ox=80+n*195,progress=Math.min(1,(t+n*.1)/3);c.beginPath();c.moveTo(ox,35);
+        for(let k=1;k<=Math.floor(progress*10);k++)c.lineTo(ox+Math.sin(k*4+n)*42,35+k*30);
+        c.strokeStyle='#382046';c.lineWidth=9;c.stroke();c.strokeStyle='#9c47c2';c.lineWidth=2;c.stroke();}
+      if(t>=4){const emerge=Math.min(1,(t-4)/4),size=.45+emerge*.9;c.save();c.globalAlpha=Math.min(1,(t-4)/1.2);c.translate(690-size*160,35);c.scale(size,size);
+        this.storm({x:0,y:0,combatPhase:t<6?0:3,warning:t>=8&&t<9,damageFlash:0},t,true);
+        c.restore();
+        if(t>=6){const beam=c.createLinearGradient(0,180,0,540);beam.addColorStop(0,'#e39bff77');beam.addColorStop(1,'#8e42bb00');
+          c.fillStyle=beam;c.beginPath();c.moveTo(720,185);c.lineTo(745,185);c.lineTo(855,528);c.lineTo(610,528);c.closePath();c.fill();
+          for(let n=0;n<24;n++){const y=520-(n*31+t*100)%320;this.rect(635+hash(n)*155,y,5+n%3*3,5+n%3*3,'#c183e6');}}
+      }
+      this.rect(-130,528,W+260,140,'#1b1326');this.rect(-130,528,W+260,8,'#675073');
+      for(let n=0;n<65;n++){const a=n*2.4+t*.7,r=70+(n*37+t*75)%540;c.globalAlpha=.35;this.rect(710+Math.cos(a)*r,230+Math.sin(a)*r*.5,4,4,'#b469db');}c.globalAlpha=1;
+      this.player({...world.player,x:310,y:482,walk:0,facing:Math.floor(t*1.1)%2?1:-1,invincible:0,shield:0,damageFlash:0,health:3,grounded:true},t);c.restore();
+      // Two brief strikes; bounded flashes instead of continuous strobing.
+      for(const strike of [2,8])if(t>=strike&&t<strike+.45){const fade=1-(t-strike)/.45;c.save();c.globalAlpha=fade;c.beginPath();c.moveTo(780,35);c.lineTo(714,123);c.lineTo(755,123);c.lineTo(663,276);c.strokeStyle='#f2cbff';c.lineWidth=8;c.stroke();c.globalAlpha=fade*.16;this.rect(0,0,W,H,'#d7a3ed');c.restore();}
+      if(t<1.2){c.globalAlpha=(1-t/1.2)*(.08+Math.sin(t*40)*.04);this.rect(0,0,W,H,'#d6a6ef');c.globalAlpha=1;}
+      const captionScale=Math.min(1.5,Math.max(1,W/(this.canvas.clientWidth||W)));
+      c.textAlign='center';c.fillStyle='#ebc7ff';
+      // Stay below the touch-sized Skip button even on short phone screens.
+      if(t>=9){this.rect(W/2-465,158,930,162,'#10071cb0');c.fillStyle='#ebc7ff';c.font=`bold ${30*captionScale}px monospace`;c.fillText('SECRET BOSS UNLOCKED',W/2,204);c.font=`bold ${38*captionScale}px monospace`;c.fillText('THE WITHER STORM',W/2,264);c.font=`${17*captionScale}px monospace`;c.fillText('ONE CHANCE · NO RETRY',W/2,303);}
+      else if(t<3){c.font=`bold ${21*captionScale}px monospace`;c.fillText('…THAT WAS NOT THE END.',W/2,218);}c.textAlign='left';
+      this.rect(0,0,W,32,'#07050d');this.rect(0,H-32,W,32,'#07050d');
+      if(t>11){c.globalAlpha=Math.min(1,t-11);this.rect(0,0,W,H,'#090611');c.globalAlpha=1;}
+    }
+    trueEnding(world){
+      const c=this.ctx,t=world.victoryTime,release=Math.min(1,Math.max(0,(t-1.5)/2.8));c.setTransform(1,0,0,1,0,0);
+      const sky=c.createLinearGradient(0,0,0,H);sky.addColorStop(0,release>.55?'#243e46':'#0c0816');sky.addColorStop(1,release>.55?'#927d75':'#442049');c.fillStyle=sky;c.fillRect(0,0,W,H);
+      for(let n=0;n<18;n++)this.rect(n*90,340+hash(n)*70,65,220,'#201b2b');
+      if(t<3){c.save();c.globalAlpha=Math.max(0,1-t/3);c.translate(830,190+t*65);c.rotate(t*.13);c.scale(.9,Math.max(.1,.9-t*.2));c.translate(-200,-190);this.storm({...world.level.boss,x:0,y:0,damageFlash:t<.25},world.time+t,true);c.restore();}
+      // A fixed budget of energy fragments flies outward, then fades away.
+      for(let n=0;n<70;n++){const a=n*2.4,r=30+t*(45+hash(n)*70);c.globalAlpha=Math.max(0,1-t/4.5);this.rect(820+Math.cos(a)*r,230+Math.sin(a)*r*.55,4+n%3*2,4+n%3*2,n%3?'#b36dd9':'#eed4ff');}c.globalAlpha=1;
+      this.rect(0,528,W,120,'#27222f');this.rect(0,528,W,7,release>.55?'#8fbd91':'#725678');
+      const walk=Math.min(1,t/3);this.player({...world.player,x:340+walk*215,y:482,walk:t<3?t*10:0,facing:1,invincible:0,shield:0,damageFlash:0,health:3,grounded:true},world.time+t);
+      if(t>2.2){c.globalAlpha=Math.min(1,(t-2.2)/.8);c.textAlign='center';c.fillStyle='#e8ffe1';c.font='bold 38px monospace';c.fillText('TRUE ENDING',W/2,133);c.font='bold 24px monospace';c.fillText('THE LAST SHADOW FALLS.',W/2,172);c.font='18px monospace';c.fillText('CREEPER STANDS VICTORIOUS · +15,000',W/2,208);c.textAlign='left';c.globalAlpha=1;}
+      this.rect(0,0,W,32,'#090713');this.rect(0,H-32,W,32,'#090713');
+    }
     ending(world){
       const c=this.ctx,t=world.victoryTime;c.globalAlpha=Math.min(1,t/1.5);this.rect(0,0,W,H,'#110f25');c.globalAlpha=1;
       for(let n=0;n<45;n++){const x=hash(n)*W,y=hash(n+9)*H;this.rect(x,y,3,3,'#ceb7ed');}
       c.save();c.translate(W/2,H/2+40);c.scale(2,2);this.player({...world.player,x:-15,y:-46,invincible:0,shield:0,health:3,grounded:true},t);c.restore();
-      c.textAlign='center';c.font='bold 28px monospace';c.fillStyle='#eee0ff';c.fillText(t<3?'THE DRAGON FALLS. THE VOID FALLS SILENT.':'THREE WORLDS. ONE EXTRAORDINARY JOURNEY.',W/2,190);c.font='18px monospace';c.fillText('Thank you for exploring.',W/2,225);c.textAlign='left';
+      c.textAlign='center';c.font='bold 28px monospace';c.fillStyle='#eee0ff';c.fillText(world.secretStatus==='won'?'TRUE ENDING — WITHER STORM DEFEATED!':world.secretStatus==='failed'?'WITHER STORM — CHALLENGE FAILED':world.qualifiesSecret()?'CONGRATULATIONS — ALL THREE WORLDS COMPLETED!':t<3?'THE DRAGON FALLS. THE VOID FALLS SILENT.':'THREE WORLDS. ONE EXTRAORDINARY JOURNEY.',W/2,190);c.font='18px monospace';c.fillText(world.secretStatus==='won'?'+15,000 · The last shadow falls.':world.secretStatus==='failed'?'Three-world victory preserved. The attempt is spent.':'Thank you for exploring.',W/2,225);c.textAlign='left';
     }
     portal(goal,time){
       const {x,y,w,h}=goal,c=this.ctx;
@@ -1519,6 +1707,8 @@
       this.rect(0,0,W,38,'#090d19');this.rect(0,H-38,W,38,'#090d19');
     }
     draw(world){
+      if(world.cinematic?.secret&&(world.state==='cinematic'||world.state==='paused'&&world.resumeState==='cinematic')){this.stormCinematic(world);return;}
+      if(world.level.secret){this.stormScene(world);return;}
       if(world.state==='cinematic'||world.state==='paused'&&world.resumeState==='cinematic'){this.cinematic(world);return;}
       const c=this.ctx;c.setTransform(1,0,0,1,0,0);this.background(world);
       c.save();let camera=world.camera;if(world.shake>0)camera+=Math.sin(world.time*80)*world.shake*20;c.translate(-Math.round(camera),0);
@@ -1586,6 +1776,14 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
       this.url=(config.url||'').replace(/\/$/,'');this.key=config.key||'';this.configured=/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(this.url)&&!!this.key;
       this.session=read('session',null);this.pending=read('pending',[]);this.pending=Array.isArray(this.pending)?this.pending.filter(p=>p&&typeof p.id==='string'&&nameOK(p.name)&&Array.isArray(p.trace)):[];
       this.cache=read('cache',null);if(!this.cache||!Array.isArray(this.cache.top))this.cache=null;this.active=null;this.authPromise=null;this.sending=null;this.storageAvailable=true;
+      const attempt=read('secretAttempt',null);
+      if(attempt?.record&&typeof attempt.record.id==='string'&&nameOK(attempt.record.name)&&Array.isArray(attempt.record.trace)&&Array.isArray(attempt.record.world_seconds)&&attempt.record.world_seconds.length===3&&attempt.record.world_seconds.every(n=>Number.isFinite(n)&&n>0)&&Number.isInteger(attempt.record.score)&&attempt.record.score>=0&&attempt.record.deaths===0){
+        // An interrupted attempt is spent, never resumed. Preserve the world win.
+        const record=attempt.record;if(!attempt.resolved)record.trace.push('secret:failed');
+        if(!this.pending.some(p=>p.id===record.id))this.pending.push(record);
+        this.storageAvailable=write('pending',this.pending);if(this.storageAvailable)write('secretAttempt',null);
+        this.recovered={record,summary:attempt.summary||{}};
+      }
     }
     async request(path,body,token,method='POST'){
       const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
@@ -1612,12 +1810,22 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
       })().finally(()=>{this.authPromise=null;});return this.authPromise;
     }
     begin(world){world.onlineRunId=uuid();this.identity().catch(()=>{});}
+    reserveSecret(world,resolved=false){
+      const record={id:world.onlineRunId||(world.onlineRunId=uuid()),name:world.playerName,score:world.score,deaths:world.deaths,world_seconds:[...world.worldElapsed],trace:[...world.scoreTrace]};
+      const summary={gems:world.gems,enemiesDefeated:world.enemiesDefeated,timeBonuses:[...world.timeBonuses],secretStatus:resolved?world.secretStatus:'failed'};
+      this.storageAvailable=write('secretAttempt',{record,summary,resolved});
+    }
+    restoreSecretResult(world){
+      if(!this.recovered)return false;const {record,summary}=this.recovered;this.recovered=null;
+      world.reset(2);const elapsed=record.world_seconds.reduce((a,b)=>a+b,0);Object.assign(world,summary,{state:'complete',region:3,stageIndex:3,score:record.score,deaths:record.deaths,playerName:record.name,elapsed,worldElapsed:record.world_seconds,scoreTrace:record.trace,onlineRunId:record.id,bossesDefeated:3,completionTime:elapsed,secretStatus:record.trace.includes('secret:victory')?'won':'failed'});return true;
+    }
     capture(world){
+      if(world.scoreTrace[0]==='rules:2'&&world.deaths===0&&!['won','failed'].includes(world.secretStatus))return null;
       if(world.worldIndex!==2||world.state!=='complete'||world.bossesDefeated!==3||world.completionTime===null||!nameOK(world.playerName)||![0,1,2].every(n=>['boss','world','timeBonus','stage:1','stage:2','stage:3'].every(key=>world.scoreTrace.includes(n+':'+key))))return null;
       const id=world.onlineRunId||(world.onlineRunId=uuid());
       const existing=this.pending.find(p=>p.id===id);if(existing){this.active=existing;return existing;}
       const record={id,name:world.playerName,score:world.score,deaths:world.deaths,world_seconds:[...world.worldElapsed],trace:[...world.scoreTrace]};
-      this.active=record;this.pending.push(record);this.storageAvailable=write('pending',this.pending);return record;
+      this.active=record;this.pending.push(record);this.storageAvailable=write('pending',this.pending);if(this.storageAvailable&&world.secretStatus!=='none')write('secretAttempt',null);return record;
     }
     async submit(record){
       if(this.sending)return this.sending.then(()=>this.pending.some(p=>p.id===record.id)?this.submit(record):null);
@@ -1657,7 +1865,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
         const head=doc.createElement('tr');for(const text of ['#','Player','Score','Deaths','Time','Date']){const th=doc.createElement('th');th.scope='col';th.textContent=text;head.append(th);}table.append(head);
         const entries=[...data.top];if(data.me&&!entries.some(e=>e.id===data.me.id))entries.push(data.me);
         for(const entry of entries){const tr=doc.createElement('tr');if(entry.id===data.me?.id){tr.className='current-player';tr.setAttribute('aria-label','Your best result');}
-          for(const value of [entry.rank,entry.name,Number(entry.score).toLocaleString(),entry.deaths,duration(entry.completion_ms),new Date(entry.completed_at).toLocaleDateString()]){const td=doc.createElement('td');td.textContent=String(value);tr.append(td);}table.append(tr);}
+          for(const value of [entry.rank,entry.name+(entry.secret_victory?' ★ Wither Storm':''),Number(entry.score).toLocaleString(),entry.deaths,duration(entry.completion_ms),new Date(entry.completed_at).toLocaleDateString()]){const td=doc.createElement('td');td.textContent=String(value);tr.append(td);}table.append(tr);}
         rows.append(table);if(!entries.length){const empty=doc.createElement('p');empty.textContent='No completed runs yet. Be the first!';rows.append(empty);}
       };
       if(this.cache){render(this.cache);status.textContent='Cached scores · '+new Date(this.cache.cachedAt).toLocaleString();}
@@ -1724,12 +1932,11 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
   'use strict';
   const $=id=>document.getElementById(id);
   const canvas=$('game'),world=new MossWorld.World(),renderer=new MossRenderer(canvas),sound=new MossSound();
-  // Development-only entry for running the same browser checks in World II.
-  if(new URLSearchParams(location.search).get('check')==='nether')world.reset(1);
-  if(new URLSearchParams(location.search).get('check')==='end')world.reset(2);
   const keys=new Set(),screen=$('screen'),content=$('screen-content');
   const touchPointers=new Map(),touchControls=$('touch-controls');
   const startMarkup=content.innerHTML,leaderboard=new CreeperLeaderboard();let leaderboardOpen=false;
+  const stormHealth=document.createElement('div');stormHealth.className='storm-health';stormHealth.hidden=true;stormHealth.setAttribute('aria-label','Wither Storm health');$('hud').append(stormHealth);
+  leaderboard.restoreSecretResult(world);
   let rememberedName='';try{rememberedName=localStorage.getItem('creeper.playerName')||'';}catch(_){}
   function prepareName(){
     if($('player-name'))return;
@@ -1748,7 +1955,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
   function clearInput(){keys.clear();touchPointers.clear();touchControls.querySelectorAll('button').forEach(b=>b.classList.remove('pressed'));world.lastJump=false;world.player.jumpBuffer=0;lastTime=0;accumulator=0;}
   function mobileFullscreen() {}
   function screenOrientation(){try{return window.screen.orientation?.lock?.('landscape')?.catch(()=>{});}catch(_){}}
-  function primary(){if(leaderboardOpen)return;sound.unlock();if(world.state==='start'){prepareName();if(!world.setPlayerName($('player-name').value)){$('name-error').textContent='Enter a valid name (3–16 letters, numbers, spaces, _ or -).';$('player-name').setAttribute('aria-invalid','true');$('player-name').focus();return;}rememberedName=world.playerName;try{localStorage.setItem('creeper.playerName',rememberedName);}catch(_){}clearInput();mobileFullscreen();world.start();}else{clearInput();if(world.state==='paused'){world.pause();sound.play('ui');sound.sync(world.state);}else if(world.state==='cinematic'||world.state==='complete'&&world.worldIndex===0)world.advanceWorld();else if(world.state==='complete'&&world.worldIndex===2)world.reset();else if(world.state==='dead'||world.state==='complete')world.retry();}canvas.focus({preventScroll:true});}
+  function primary(){if(leaderboardOpen)return;sound.unlock();if(world.state==='start'){prepareName();if(!world.setPlayerName($('player-name').value)){$('name-error').textContent='Enter a valid name (3–16 letters, numbers, spaces, _ or -).';$('player-name').setAttribute('aria-invalid','true');$('player-name').focus();return;}rememberedName=world.playerName;try{localStorage.setItem('creeper.playerName',rememberedName);}catch(_){}clearInput();mobileFullscreen();world.start();}else{clearInput();if(world.state==='paused'){world.pause();sound.play('ui');sound.sync(world.state);}else if(world.state==='victory'&&world.secretStatus==='none'&&world.qualifiesSecret()){world.beginSecret();leaderboard.reserveSecret(world);world.advanceWorld();}else if(world.state==='cinematic'||world.state==='complete'&&world.worldIndex===0)world.advanceWorld();else if(world.state==='complete'&&world.worldIndex===2)world.reset();else if(world.state==='dead'||world.state==='complete')world.retry();}canvas.focus({preventScroll:true});}
   function togglePause(){if(['playing','cinematic','victory','paused'].includes(world.state)){clearInput();world.pause();sound.play('ui');sound.sync(world.state);canvas.focus({preventScroll:true});}}
   function updateSoundButton(){const muted=sound.muted;$('sound-label').textContent=muted?'AUDIO OFF':'AUDIO ON';$('sound-button').setAttribute('aria-label',muted?'Enable all audio':'Mute all audio');}
   function toggleSound(){const wasMuted=sound.muted,silent=sound.toggle();updateSoundButton();if(wasMuted&&!silent)sound.play('ui');}
@@ -1774,7 +1981,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     if(event.target instanceof HTMLButtonElement&&['Enter','Space'].includes(event.code))return;
     if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code))event.preventDefault();
     sound.unlock();
-    if(world.state==='cinematic'&&!event.repeat&&['Enter','Space','Escape'].includes(event.code)){event.preventDefault();primary();return;}
+    if((world.state==='cinematic'||world.state==='victory'&&world.secretStatus==='none'&&world.qualifiesSecret())&&!event.repeat&&['Enter','Space','Escape'].includes(event.code)){event.preventDefault();primary();return;}
     if(!event.repeat){
       if(event.code==='Enter'){event.preventDefault();primary();}
       if(event.code==='Escape'||event.code==='KeyP')togglePause();
@@ -1798,7 +2005,9 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     $('world-stamp').hidden=state!=='start';
     if(state==='start'){leaderboardOpen=false;content.innerHTML=startMarkup;prepareName();return;}
     const data=state==='paused'?{eyebrow:'TAKE A BREATHER',title:'A little pause.',copy:'The overworld can wait.<br>Your next adventure is right where you left it.',button:'KEEP EXPLORING',hint:'to resume'}:
-      state==='dead'?{eyebrow:'EVERY EXPLORER TAKES A TUMBLE',title:'Let’s try again.',copy:`Your treasure is safe. Your trail isn’t over.<br>Return to ${world.checkpoint.x>132?'your last checkpoint':world.worldIndex===2?'the first End island':world.worldIndex===1?'the Nether entrance':'the meadow'} with full health.`,button:'BACK TO THE TRAIL',hint:'to retry'}:
+      state==='dead'?{eyebrow:'EVERY EXPLORER TAKES A TUMBLE',title:'Let’s try again.',copy:`Death penalty: −2,000 points (minimum 0).<br>Return to ${world.checkpoint.x>132?'your last checkpoint':world.worldIndex===2?'the first End island':world.worldIndex===1?'the Nether entrance':'the meadow'} with full health.`,button:'BACK TO THE TRAIL',hint:'to retry'}:
+      world.secretStatus==='won'?{eyebrow:'THE LAST SHADOW FALLS',title:'TRUE ENDING — WITHER STORM DEFEATED!',copy:'Secret victory · +15,000 points',button:'NEW GAME',hint:'to start a new run'}:
+      world.secretStatus==='failed'?{eyebrow:'THREE WORLDS STILL COMPLETED',title:'WITHER STORM — CHALLENGE FAILED',copy:'Your three-world victory and score are preserved. This attempt is spent.',button:'NEW GAME',hint:'to start a new run'}:
       world.worldIndex===2?{eyebrow:'THE JOURNEY IS COMPLETE',title:'CONGRATULATIONS — ALL THREE WORLDS COMPLETED!',copy:`${world.gems} treasures · Score: ${world.score.toLocaleString()}<br>${formatTime(world.elapsed)} · ${world.deaths} tumbles`,button:'PLAY AGAIN',hint:'to play again'}:
       world.worldIndex===1?{eyebrow:'BOTH WORLDS EXPLORED',title:'WORLD II COMPLETED!',copy:`You slipped past the guardian and reached the final portal.<br>${world.gems} treasures · Score: ${world.score.toLocaleString()} · ${formatTime(world.elapsed)}`,button:'REPLAY THE NETHER',hint:'to play again'}:
       {eyebrow:'WORLD I COMPLETE',title:'Wildly well done.',copy:`You found the old gateway and unlocked World II · The Nether.<br>${world.gems} treasures · ${world.score.toLocaleString()} points · ${formatTime(world.elapsed)}<br>${world.deaths===0?'A perfect journey. No tumbles!':`${world.deaths} ${world.deaths===1?'tumble':'tumbles'}. You kept going.`}`,button:'ENTER THE NETHER',hint:'to continue'};
@@ -1808,6 +2017,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
       const name=document.createElement('strong');name.textContent=world.playerName;results.append(name);
       const stats=document.createElement('p');stats.textContent=`Score ${world.score.toLocaleString()} · Gems ${world.gems} · Enemies ${world.enemiesDefeated} · Bosses ${world.bossesDefeated} · Deaths ${world.deaths} · Time ${formatTime(world.completionTime??world.elapsed)}`;results.append(stats);
       const bonuses=document.createElement('p');bonuses.textContent='Time bonuses: '+world.timeBonuses.map((v,i)=>`World ${['I','II','III'][i]} +${v}`).join(' · ');results.append(bonuses);
+      const rules=document.createElement('p');rules.textContent='Death penalty: −2,000 (minimum 0)'+(world.secretStatus==='won'?' · Wither Storm bonus: +15,000':world.secretStatus==='failed'?' · Secret challenge spent; no score penalty':'');results.append(rules);
       const rankings=document.createElement('section');results.append(rankings);leaderboard.mount(rankings,leaderboard.capture(world));
       content.querySelector('.intro-copy').replaceWith(results);
     }
@@ -1822,13 +2032,16 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     $('gem-count').textContent=world.gems;$('score').textContent=world.score.toString().padStart(6,'0');$('world-timer').textContent=formatTime(Math.ceil(world.countdown));$('world-timer').classList.toggle('urgent',world.countdown<30);$('time-label').textContent=formatTime(world.elapsed);
     $('progress-fill').style.width=`${Math.min(100,world.player.x/world.level.goal.x*100)}%`;
     $('world-label').textContent=`WORLD ${['I','II','III'][world.worldIndex]} · STAGE ${String(world.stageIndex+1).padStart(2,'0')}`;
+    if(world.secretActive()){$('world-label').textContent='SECRET · ONE CHANCE';$('world-timer').textContent='NO RETRY';}
+    if($('portable-retry')){$('portable-retry').textContent=world.secretActive()?'END ATTEMPT':'RETRY';$('portable-retry').setAttribute('aria-label',world.secretActive()?'End the one-chance secret attempt':'Restart from checkpoint');}
     touchControls.hidden=world.state!=='playing';
-    $('skip-button').hidden=world.state!=='cinematic';$('hud').hidden=['cinematic','victory'].includes(world.state);
+    if(world.level.secret)$('biome-label').textContent='WITHER STORM';
+    stormHealth.hidden=!world.secretActive();if(world.secretActive()){const b=world.level.boss;stormHealth.textContent=`WITHER STORM · PHASE ${['I','II','III'][b.combatPhase-1]} · ${b.health}/9`;stormHealth.style.backgroundImage=`linear-gradient(90deg,#754499 ${b.health/9*100}%,#271c31 0)`;}
+    $('skip-button').hidden=world.state!=='cinematic'&&!(world.state==='victory'&&world.secretStatus==='none'&&world.qualifiesSecret());$('hud').hidden=['cinematic','victory'].includes(world.state);
     $('pause-button').textContent=world.state==='paused'?'▷':'Ⅱ';$('pause-button').setAttribute('aria-label',world.state==='paused'?'Resume game':'Pause game');
     if(shownRegion!==world.region||shownWorld!==world.worldIndex){shownRegion=world.region;shownWorld=world.worldIndex;$('biome-label').textContent=world.level.regions[world.region].toUpperCase();$('area-caption').textContent=world.worldIndex===2?'THE END / III':world.worldIndex===1?'THE NETHER / II':'WILDBLOOM TRAIL / 01';$('game-shell').classList.toggle('end-world',world.worldIndex===2);$('game-shell').classList.toggle('nether',world.worldIndex===1);document.querySelector('.journey').classList.toggle('nether',world.worldIndex===1);document.querySelectorAll('.route-stop').forEach((stop,i)=>{stop.classList.toggle('active',i<=world.region);stop.querySelector('h3').textContent=world.level.regions[i];stop.querySelector('small').textContent=world.worldIndex===2?`III · ${String(i+1).padStart(2,'0')} / ${['ENTER THE VOID','FIND YOUR FOOTING','CLIMB THE CITY','DISABLE THREE HEADS'][i]}`:world.worldIndex===1?`II · ${String(i+1).padStart(2,'0')} / ${['ENTER THE FIRE','CROSS THE LAVA','BREACH THE FORTRESS','WAKE THE GUARDIAN'][i]}`:routeLabels[i];});}
   }
   function frame(timestamp,test=false){
-    if(!test&&window.mossbound?.checking)return;
     const wallDt=lastTime?Math.max(0,(timestamp-lastTime)/1000):0,dt=Math.min(.05,wallDt);lastTime=timestamp;accumulator+=dt;
     const touch=new Set(touchPointers.values());
     const input={left:keys.has('KeyA')||keys.has('ArrowLeft')||touch.has('left'),right:keys.has('KeyD')||keys.has('ArrowRight')||touch.has('right'),jump:keys.has('Space')||keys.has('KeyW')||keys.has('ArrowUp')||touch.has('jump'),run:keys.has('ShiftLeft')||keys.has('ShiftRight')||touch.has('left')||touch.has('right')};
@@ -1839,6 +2052,10 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
       if(event.type==='points'){const label=document.createElement('span');label.className='points-popup';label.textContent='+'+event.points;label.style.left=Math.max(5,Math.min(90,(event.x-world.camera)/MossWorld.WIDTH*100))+'%';label.style.top=Math.max(22,Math.min(75,event.y/MossWorld.HEIGHT*100))+'%';$('game-shell').append(label);label.addEventListener('animationend',()=>label.remove(),{once:true});}
       if(event.type==='start'){if(world.worldIndex===0&&!world.onlineRunId)leaderboard.begin(world);sound.startMusic({restart:true,scene:['game','nether','end'][world.worldIndex]});showToast('A / D move · Tap jump again in the air · Shift runs');}
       if(event.type==='cinematic'){clearInput();sound.startMusic({restart:true,scene:world.worldIndex===1?'endportal':'portal'});$('toast').classList.remove('visible');toastTimer=0;toastQueue.length=0;}
+      if(event.type==='secretReserved'){leaderboard.reserveSecret(world);clearInput();sound.stopMusic();sound.play('stormRumble');sound.startMusic({restart:true,scene:'stormfilm'});$('toast').classList.remove('visible');toastTimer=0;toastQueue.length=0;}
+      if(event.type==='secretStart'){clearInput();sound.startMusic({restart:true,scene:'storm'});showToast('ONE CHANCE · Dodge the volley, then double-jump onto the glowing weak point');}
+      if(event.type==='stormPhase')showToast('Wither Storm · Phase '+event.phase+' · The exposed core rises');
+      if(event.type==='secretResolved'){leaderboard.reserveSecret(world,true);clearInput();sound.stopMusic();sound.play(world.secretStatus==='won'?'stormCollapse':'death');if(world.secretStatus==='won')sound.startMusic({restart:true,scene:'trueending'});}
       if(event.type==='doublejump'&&!doubleJumpTipShown){doubleJumpTipShown=true;showToast('Air jump used · Land or stomp an enemy to recharge it');}
       if(event.type==='checkpoint')showToast('Checkpoint reached · Respawn position saved · '+world.level.regions[event.region]);
       if(event.type==='world3')showToast('The End · Stomp glowing dragon cores · Final hits unlock in Phase III');
@@ -1852,7 +2069,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
       if(event.type==='powerup')showToast('Pickaxe · Invincible for 3 seconds');
       if(event.type==='hazardWarning')showToast('Watch the amber marker — something is falling!');
       if(event.type==='retry'){sound.startMusic({scene:['game','nether','end'][world.worldIndex]});showToast('A fresh start. Your collected treasure is safe.');}
-      if(['death','complete','victory'].includes(event.type))sound.stopMusic();
+      if(['death','complete','victory'].includes(event.type)){sound.stopMusic();if(event.type==='victory'&&world.qualifiesSecret())sound.startMusic({restart:true,scene:'game'});}
     }world.events.length=0;
     if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0){$('toast').classList.remove('visible');if(toastQueue.length)showToast(toastQueue.shift());}}
     renderer.draw(world);updateHUD();updateScreen();if(!test)requestAnimationFrame(frame);
