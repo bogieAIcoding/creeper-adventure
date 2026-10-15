@@ -85,3 +85,12 @@ outcome per run UUID. It cannot prove that a client really performed the fight:
 fabricated consistent telemetry remains possible, as with the existing game.
 The client saves the attempt before entry; an interrupted/reloaded attempt is
 spent and becomes a preserved three-world result, never an arena respawn.
+# Procedural difficulty migration
+
+Apply `migration-procedural.sql` only after the existing `schema.sql` and `migration-secret-storm.sql` have been applied. In the existing Supabase project's SQL Editor, create a new query, paste the complete contents of `migration-procedural.sql`, and run it. It is transactional and may be run again. It adds NORMAL/HARD categories, seed and generator-version metadata; it preserves existing scores in LEGACY, existing clients, RLS and restricted submissions. No service-role key belongs in the frontend.
+
+Apply this migration before publishing a generator-revision-2 build. Verify `select public.read_leaderboard_category_v2('hard');` and `select public.read_leaderboard_category_v2('normal');`, then test authenticated submission. New procedural runs stay queued locally if that endpoint is missing, and are never submitted to the legacy category. Browser storage restrictions can limit persistence to the current tab. Existing six-field pending records retain their legacy submission path; the menu offers only HARD and NORMAL, without deleting older scores.
+
+Revision 2 adds 36 HARD-only enemy rewards (three per stage). The validator rejects these rewards for NORMAL, LEGACY and revision 1. New rankings use `read_leaderboard_category_v2('hard')` / `('normal')`; revision 1 keeps its original read RPC and separate rankings. Reapply the entire migration if its first revision was already installed. Cached and pending revision 1 results retain their original category/version; no legitimate scores are removed.
+
+The migration is exercised in an isolated PostgreSQL-compatible test database. Live release checks also verify authenticated category submissions, HARD-only reward validation, separate rankings, secret results, duplicate prevention, denied direct writes and rate limiting. Client-provided seeds and histories do not make browser gameplay cheat-proof; a modified client can fabricate consistent telemetry or misreport its difficulty. Temporary QA identities and scores must be removed and their removal verified before publishing.

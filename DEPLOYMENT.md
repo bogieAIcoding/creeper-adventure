@@ -21,6 +21,15 @@ Right to run; hold Jump for height, release and tap again to double jump. Pause
 is in the HUD; Retry, volume sliders and mute are above the game. Returning
 from another app leaves the game paused: tap Resume.
 
+Choose NORMAL or HARD above Start Game; difficulty stays locked for that run.
+Courses use a reproducible seed, and checkpoint retries keep the same layout.
+HARD adds three enemies per stage, new telegraphed creatures, faster platforms
+and tougher double-jump sections. Gem trails keep deliberate rows and arcs.
+The HUD shows score and unique defeated enemies (KO); respawned enemies cannot
+be farmed for extra score or KO credit. NORMAL/HARD rankings are separate, as
+are generator revisions. Apply `backend/migration-procedural.sql` before
+publishing this build. Existing scores are preserved in their original pool.
+
 Desktop: A/D or arrows move, Space/W/Up jumps, Shift runs, Esc/P pauses,
 R retries, M mutes. F optionally requests fullscreen where supported.
 

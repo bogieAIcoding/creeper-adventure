@@ -61,6 +61,16 @@
 .leaderboard .current-player{background:#9dd56330;outline:1px solid #abd877}.leaderboard-note{font-size:10px;opacity:.75}
 .leaderboard button{min-height:44px;margin-right:6px}#leaderboard-button,#leaderboard-back{min-height:44px}.screen-content:has(.leaderboard){max-height:96%;overflow:auto;touch-action:pan-y}
 @media(max-height:500px){.leaderboard{font-size:10px;margin:5px 0}.leaderboard th,.leaderboard td{padding:3px 5px}.leaderboard h2{font-size:12px}.leaderboard-note{font-size:9px}.screen-content:has(.leaderboard) h1{font-size:18px}}
+.difficulty-choice{display:grid;gap:5px;margin:5px 0 10px;width:280px;max-width:100%;font:700 10px Consolas,monospace;letter-spacing:1px;color:#314c37}
+.start-screen .primary-button{width:280px;max-width:100%}
+.difficulty-choice select{width:100%;min-width:0}
+.difficulty-choice select,.leaderboard-category{font:inherit;color:#e6f2d4;background:#263e35;border:1px solid #658464;border-radius:6px;padding:7px 12px;min-height:34px;touch-action:manipulation}
+.loot-panel{height:auto;min-height:50px;padding-top:7px;padding-bottom:7px}
+.run-metrics{display:grid;gap:2px;min-width:0;text-align:right;white-space:nowrap}
+.loot-panel #score{display:block;font:700 18px/1.1 Consolas,monospace;letter-spacing:.5px;color:#f2ffd7}
+.enemy-tally{font:700 10px/1.1 Consolas,monospace;color:#c9e8ae;letter-spacing:.4px}
+.enemy-tally b{font:inherit}
+.leaderboard td:nth-child(3){font-size:14px;font-weight:700}
 
 </style>
 <style>
@@ -90,7 +100,7 @@
 .portable-touch .hud{padding:10px 12px;grid-template-columns:auto minmax(0,1fr) auto;gap:6px}
 .portable-touch .health-panel,.portable-touch .loot-panel{height:44px;padding:4px 8px;gap:6px}
 .portable-touch .health-panel>.hud-label,.portable-touch .ability-divider,.portable-touch .jump-meter,.portable-touch .loot-divider{display:none}
-.portable-touch #score{display:block;font-size:8px;letter-spacing:0}
+.portable-touch #score{display:block;font-size:14px;letter-spacing:0}
 .portable-touch #world-timer{font-size:10px;letter-spacing:0}
 .portable-touch #hearts{font-size:18px;gap:3px}
 .portable-touch #pickaxe-timer{font-size:9px}
@@ -117,9 +127,21 @@
 .portable-touch .skip-button{top:12px;right:12px;min-height:44px}
 .portable-touch .rotate-hint{display:none;position:absolute;inset:auto 20px 14px;padding:10px;background:#142324ed;color:#effdd8;border:1px solid #a7c58680;border-radius:5px;text-align:center;font:14px Arial,sans-serif;pointer-events:none;z-index:9}
 .portable-touch.portable-portrait .rotate-hint{display:block}
-@media(min-width:1000px){.portable-touch #score{display:block;font-size:9px;letter-spacing:.5px}}
+@media(min-width:1000px){.portable-touch #score{display:block;font-size:16px;letter-spacing:.5px}}
 @media(max-width:700px){.portable-touch .brand>span:last-child{display:none}}
 @media(max-height:500px){.portable-touch .brand>span:last-child,.portable-touch .start-controls,.portable-touch .enter-hint,.portable-touch .eyebrow{display:none}.portable-touch .intro-copy{margin:10px 0;font-size:11px;line-height:1.3}.portable-touch .brand-mark{width:30px;height:31px}.portable-touch .icon-button span{display:none}.portable-touch .screen.modal h1{font-size:18px}.portable-touch .screen.modal .intro-copy{font-size:10px;line-height:1.3;margin:8px 0}}
+/* Short phone landscapes keep the name, difficulty and Start in one aligned
+   column, beside the title, so the added selector never pushes Start offscreen. */
+@media(max-height:500px) and (orientation:landscape){
+ .portable-touch .start-screen .screen-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,240px);column-gap:24px;width:88%}
+ .portable-touch .start-screen h1{grid-column:1;grid-row:1/3;align-self:center;font-size:clamp(20px,3.4vw,30px);letter-spacing:-1px}
+ .portable-touch .start-screen .intro-copy{grid-column:1;grid-row:3;align-self:center}
+ .portable-touch .start-screen .player-name-label{grid-column:2;grid-row:1;margin:0}
+ .portable-touch .start-screen .name-error{grid-column:2;grid-row:2}
+ .portable-touch .start-screen .difficulty-choice{grid-column:2;grid-row:3}
+ .portable-touch .start-screen .primary-button{grid-column:2;grid-row:4}
+ .portable-touch .start-screen #leaderboard-button{grid-column:1;grid-row:4;justify-self:start;align-self:center;margin:0}
+}
 
 </style>
 </head>
@@ -141,7 +163,7 @@
         <div class="hud" id="hud">
           <div class="health-panel"><span class="hud-label">HEALTH</span><div id="hearts" aria-label="3 of 3 health"><span>♥</span><span>♥</span><span>♥</span></div><span id="pickaxe-timer" hidden aria-label="Pickaxe protection remaining"></span><span class="ability-divider"></span><div id="jump-meter" class="jump-meter" aria-label="Air jump ready"><small>AIR JUMP</small><i></i></div></div>
           <div class="level-panel"><span class="hud-label" id="world-label">WORLD I · STAGE 01</span><strong id="biome-label">SUNLIT MEADOW</strong></div>
-          <div class="loot-panel"><span class="gem-icon" aria-hidden="true"></span><strong id="gem-count">0</strong><span class="loot-divider"></span><span class="hud-label" id="score" aria-label="Score">000000</span><span id="world-timer" aria-label="World time remaining">10:00</span><button id="pause-button" aria-label="Pause game" title="Pause (Esc)">Ⅱ</button></div>
+          <div class="loot-panel"><span class="gem-icon" aria-hidden="true"></span><strong id="gem-count">0</strong><span class="loot-divider"></span><span class="run-metrics"><span class="hud-label" id="score" aria-label="Score">000000</span><span class="enemy-tally" title="Unique enemies defeated">KO <b id="enemy-count" aria-label="Enemies defeated">0</b></span></span><span id="world-timer" aria-label="World time remaining">10:00</span><button id="pause-button" aria-label="Pause game" title="Pause (Esc)">Ⅱ</button></div>
           <div id="toast" class="toast" aria-live="polite"></div>
         </div>
         <div id="screen" class="screen start-screen">
@@ -177,6 +199,7 @@
 (function (root) {
   'use strict';
   const TILE=48, WIDTH=1152, HEIGHT=648, REGION=6720;
+  const PHYSICS={run:310,walk:205,gravity:1500,jump:570,airJump:500,maxFall:900};
   const POINTS={gem:100,enemy:150,mossheart:300,pickaxe:200,boss:2000,world:1000};
   const WORLD_SECONDS=600,RETRY_SECONDS=[600,450,300,150];
   const validName=value=>typeof value==='string'&&/^[\p{L}\p{N} _-]{3,16}$/u.test(value.trim());
@@ -198,7 +221,10 @@
     shade:{w:34,h:36,speed:49,respawn:14,color:'#bbc4d9',flying:true},
     endwalker:{w:28,h:68,speed:76,respawn:15,color:'#30223e'},
     endwing:{w:36,h:32,speed:55,respawn:16,color:'#a582cf',flying:true},
-    crystal:{w:30,h:40,speed:0,respawn:18,color:'#ddaaff',flying:true}
+    crystal:{w:30,h:40,speed:0,respawn:18,color:'#ddaaff',flying:true},
+    thornback:{w:40,h:28,speed:64,respawn:13,color:'#afcc63',charge:true},
+    emberbat:{w:34,h:30,speed:46,respawn:16,color:'#ff914b',flying:true,warningLead:.95},
+    voidmite:{w:34,h:26,speed:82,respawn:14,color:'#a78bea',charge:true}
   };
 
   function makeLevel(){
@@ -367,12 +393,138 @@
     return level;
   }
 
+  // Named streams isolate a stage, subsystem and generation attempt from others.
+  function seededRandom(seed,name=''){
+    let state=seed>>>0;for(let i=0;i<name.length;i++)state=Math.imul(state^name.charCodeAt(i),16777619)>>>0;
+    return()=>{state=(state+0x6D2B79F5)>>>0;let t=state;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};
+  }
+  let seedCounter=0,jumpLimits=null;
+  function freshSeed(){const a=new Uint32Array(1);if(root.crypto?.getRandomValues){root.crypto.getRandomValues(a);return a[0];}return(Math.imul(Date.now()>>>0,2654435761)^(++seedCounter))>>>0;}
+  function measureJumps(){
+    if(jumpLimits)return jumpLimits;const results=[];
+    for(const second of [null,.38]){let y=0,v=-PHYSICS.jump,low=0,t=0;for(let n=0;n<240;n++){if(second!==null&&n===Math.round(second*120))v=-PHYSICS.airJump;v=Math.min(PHYSICS.maxFall,v+PHYSICS.gravity/120);y+=v/120;low=Math.min(low,y);t=(n+1)/120;if(n>2&&y>=0)break;}results.push({range:t*PHYSICS.run,height:-low});}
+    return jumpLimits={single:results[0],double:results[1],safeRange:results[1].range*.8,safeHeight:results[1].height*.8};
+  }
+  const profile=d=>d==='hard'?{shift:2,speed:[1.05,1.15],motion:.1,cooldown:[.9,1.05]}:{shift:1,speed:[.95,1.05],motion:.05,cooldown:[.95,1.1]};
+  function reindex(level){level.tilesByColumn=[];for(const t of level.tiles)(level.tilesByColumn[Math.floor(t.x/TILE)]||(level.tilesByColumn[Math.floor(t.x/TILE)]=[])).push(t);for(const e of level.enemies)if(e.homePlatformId)e.platform=level.movers.find(m=>m.id===e.homePlatformId)||null;}
+  function floorTop(level,x){let y=Infinity;for(const t of level.tilesByColumn[Math.floor(x/TILE)]||[])if(t.y>100&&t.y<y)y=t.y;return y;}
+  function clearBox(level,box){const a=Math.max(0,Math.floor(box.x/TILE)),b=Math.floor((box.x+box.w)/TILE);for(let c=a;c<=b;c++)if((level.tilesByColumn[c]||[]).some(t=>overlaps(t,box)))return false;return true;}
+  function protectedSite(level,x,w=0){const local=x%REGION;return local<24*TILE||local+w>REGION-4*TILE||x+w>level.boss.x-1050||level.checkpoints.some(f=>x+w>f.x-6*TILE&&x<f.x+6*TILE)||level.items.some(i=>i.powerup&&x+w>i.x-5*TILE&&x<i.x+5*TILE);}
+  function landingZone(level,x,margin=144){return level.gaps.some(([c,n])=>x>c*TILE-margin&&x<(c+n)*TILE+margin);}
+  function copyCourse(level){const copy={...level};for(const key of ['tiles','items','enemies','movers','hazards','decorations'])copy[key]=level[key].map(o=>({...o}));copy.gaps=level.gaps.map(g=>[...g]);copy.lava=(level.lava||[]).map(o=>({...o}));reindex(copy);return copy;}
+  function safeEnemy(level,e){
+    const box={x:e.x,y:e.y,w:e.w,h:e.h};return clearBox(level,box)&&!protectedSite(level,e.x,e.w)&&!landingZone(level,e.x)&&!level.hazards.some(h=>Math.abs(h.x-e.x)<120)&&!level.enemies.some(o=>o.id!==e.id&&Math.abs(o.x-e.x)<(e.hardExtra||o.hardExtra?96:150)&&Math.abs(o.y-e.y)<90)&&
+      (ENEMY_TYPES[e.type].flying||[2,e.w/2,e.w-2].every(dx=>floorTop(level,e.x+dx)===e.y+e.h));
+  }
+  function validateStage(level,changes){
+    const limits=measureJumps();
+    for(const [col,width]of changes.gaps){if(width*TILE>limits.safeRange)return false;const left=col*TILE-1,right=(col+width)*TILE;
+      if(![left-72,left-24,right+24,right+72].every(x=>floorTop(level,x)===528))return false;
+      if(!clearBox(level,{x:left-96,y:528-46,w:96,h:46})||!clearBox(level,{x:right,y:528-46,w:96,h:46}))return false;
+    }
+    for(const box of changes.platforms){if(528-box.y>limits.safeHeight||box.y<100||!clearBox(level,{x:box.x,y:box.y-46,w:box.w,h:46}))return false;for(let x=box.x;x<box.x+box.w;x+=TILE)if(!Number.isFinite(floorTop(level,x+24)))return false;}
+    return changes.enemies.every(id=>safeEnemy(level,level.enemies.find(e=>e.id===id)))&&changes.items.every(id=>{const i=level.items.find(o=>o.scoreId===id);return clearBox(level,i)&&i.y>=100&&i.y+i.h<=528;});
+  }
+  function varyStage(base,worldIndex,stage,seed,difficulty,attempt,version=1){
+    const level=copyCourse(base),p=profile(difficulty),prefix=`world:${worldIndex}:stage:${stage}:attempt:${attempt}:`,changes={gaps:[],platforms:[],enemies:[],items:[]};
+    const int=(r,n)=>Math.floor(r()*(n*2+1))-n,between=(r,a,b)=>a+r()*(b-a),inStage=x=>Math.floor(x/REGION)===stage;
+    let r=seededRandom(seed,prefix+'terrain');
+    for(let index=0;index<level.gaps.length;index++){
+      const [col,width]=level.gaps[index],x=col*TILE,near=level.movers.filter(m=>Math.abs(m.baseX-x)<(width+5)*TILE);if(!inStage(x)||width>6||protectedSite(level,x-144,(width+6)*TILE)||near.some(m=>m.axis==='x'||m.disappear)||level.tiles.some(t=>t.y>100&&t.y<528&&t.x>x-144&&t.x<x+(width+3)*TILE))continue;
+      // Lift-supported crossings may only shrink; their authored lift remains fixed.
+      const nextCol=col+(near.length?0:int(r,p.shift)),nextWidth=clamp(width+(near.length?-Math.floor(r()*2):int(r,1)),2,Math.floor(measureJumps().safeRange/TILE));if(nextCol===col&&nextWidth===width)continue;
+      if(level.gaps.some((g,n)=>n!==index&&nextCol<g[0]+g[1]+4&&nextCol+nextWidth+4>g[0]))continue;
+      const types=[11,12,13,14].map(row=>(level.tiles.find(t=>Math.floor(t.x/REGION)===stage&&t.y===row*TILE)||{}).type);
+      level.tiles=level.tiles.filter(t=>!(t.y>=528&&t.x>=nextCol*TILE&&t.x<(nextCol+nextWidth)*TILE));
+      for(let c=col;c<col+width;c++)if(c<nextCol||c>=nextCol+nextWidth)for(let row=11;row<(worldIndex===2?14:15);row++)level.tiles.push({x:c*TILE,y:row*TILE,w:TILE,h:TILE,type:types[row-11]});
+      level.gaps[index]=[nextCol,nextWidth];for(const lava of level.lava)if(lava.x===x)Object.assign(lava,{x:nextCol*TILE,w:nextWidth*TILE});
+      for(const d of level.decorations)if(d.type==='sign'&&d.x===(col-2)*TILE){d.x=(nextCol-2)*TILE;d.label=nextWidth>2?'DOUBLE JUMP':'MIND THE GAP';}
+      for(const i of level.items)if(!i.powerup&&i.x>=x&&i.x<x+width*TILE)i.x+=(nextCol-col)*TILE;
+      changes.gaps.push([nextCol,nextWidth]);reindex(level);
+    }
+    r=seededRandom(seed,prefix+'platforms');
+    const blocks=level.tiles.filter(t=>inStage(t.x)&&t.y>=384&&t.y<528).sort((a,b)=>a.x-b.x),groups=[];
+    for(const t of blocks){const last=groups[groups.length-1];if(last&&t.x-last[last.length-1].x<=4*TILE)last.push(t);else groups.push([t]);}
+    for(const group of groups){const x=group[0].x,right=Math.max(...group.map(t=>t.x+TILE));if(protectedSite(level,x-144,right-x+288)||landingZone(level,x,240)||landingZone(level,right,240)||level.movers.some(m=>Math.abs(m.baseX-x)<360)||group.length>5)continue;
+      const dx=int(r,p.shift)*TILE,dy=difficulty==='hard'?int(r,1)*TILE:0;if(!dx&&!dy)continue;if(landingZone(level,x+dx,240)||landingZone(level,right+dx,240)||protectedSite(level,x+dx-144,right-x+288))continue;
+      if(group.some(t=>!Number.isFinite(floorTop(level,t.x+dx+24))||level.tiles.some(o=>!group.includes(o)&&overlaps({...t,x:t.x+dx,y:t.y+dy},o))))continue;
+      for(const t of group){t.x+=dx;t.y+=dy;}for(const i of level.items)if(!i.powerup&&i.x>=x&&i.x<right&&i.y<480){i.x+=dx;i.y+=dy;}
+      changes.platforms.push({x:x+dx,y:Math.min(...group.map(t=>t.y)),w:right-x});reindex(level);
+    }
+    for(const m of level.movers){if(!inStage(m.baseX)||protectedSite(level,m.baseX,m.w))continue;const mandatory=level.gaps.some(([c,n])=>m.baseX+m.w>=c*TILE-96&&m.baseX<(c+n)*TILE+96)||m.id.startsWith('end-elevator');
+      const factor=between(r,1-p.motion,1+p.motion);m.period*=factor;m.phase+=between(r,0,.6);if(m.disappear)m.disappear*=Math.max(1,factor);
+      if(!mandatory){m.range*=between(r,1-p.motion,1+p.motion);} // Critical travel envelopes stay authored.
+    }
+    r=seededRandom(seed,prefix+'hazards');
+    for(const h of level.hazards){if(!inStage(h.x)||protectedSite(level,h.x,h.w))continue;const x=h.x+int(r,p.shift)*TILE;
+      if(!landingZone(level,x,180)&&floorTop(level,x+20)===528&&!level.hazards.some(o=>o.id!==h.id&&Math.abs(o.x-x)<192)&&!level.enemies.some(e=>Math.abs(e.home-x)<160)&&!level.movers.some(m=>Math.abs(m.baseX-x)<180)){
+        const old=h.x;h.x=x;for(const d of level.decorations)if(d.type==='dangerSign'&&d.x===old-4-TILE)d.x=x-4-TILE;
+      }h.timer*=between(r,.9,1.1);h.cycle*=between(r,difficulty==='hard'?.9:.95,1.05);
+    }
+    r=seededRandom(seed,prefix+'enemies');const groupsByWorld=[['mossling','rattle','spider'],['boar','magma'],['endwalker']],fliers=[[],['cinder','shade'],['endwing','crystal']];
+    const firstType=new Set();
+    for(const e of level.enemies){const first=!firstType.has(e.type);firstType.add(e.type);if(!inStage(e.home)||protectedSite(level,e.home,e.w)||e.homePlatformId)continue;
+      const original={...e},pool=ENEMY_TYPES[e.type].flying?fliers[worldIndex]:groupsByWorld[worldIndex];
+      for(let n=0;n<6;n++){const type=first?original.type:pool[Math.floor(r()*pool.length)],config=ENEMY_TYPES[type],x=original.home+int(r,p.shift)*TILE,y=config.flying?original.homeY:floorTop(level,x+config.w/2)-config.h;
+        Object.assign(e,{type,x,y,w:config.w,h:config.h});if(!safeEnemy(level,e)){Object.assign(e,original);continue;}
+        e.speed=config.speed*between(r,...p.speed);e.dir=r()<.5?-1:1;e.spawnDir=e.dir;e.vx=e.speed*e.dir;e.home=e.spawnX=x;e.homeY=e.spawnY=y;e.respawnDelay=config.respawn;e.attackCooldown=between(r,difficulty==='hard'?4.1:4.4,4.8);if(e.attackTime)e.attackTime*=between(r,.95,1.1);changes.enemies.push(e.id);break;
+      }
+    }
+    r=seededRandom(seed,prefix+'gems');
+    for(const i of level.items){if(version>=2||!inStage(i.x)||i.powerup||protectedSite(level,i.x,i.w))continue;const old={...i};for(let n=0;n<4;n++){i.x=old.x+int(r,p.shift)*12;i.y=old.y+int(r,1)*12;
+      const supported=Number.isFinite(floorTop(level,i.x+i.w/2))||level.gaps.some(([c,w])=>i.x>=c*TILE&&i.x<(c+w)*TILE&&w*TILE<=measureJumps().safeRange);
+      if(supported&&clearBox(level,i)&&i.y>=100&&i.y+i.h<=528&&Math.abs(i.y-old.y)<=12&&!level.items.some(o=>o!==i&&overlaps(o,i))&&!level.enemies.some(e=>overlaps(e,i))){changes.items.push(i.scoreId);break;}Object.assign(i,old);
+    }}
+    return{level,changes};
+  }
+  function generateCourse(level,worldIndex,seed,difficulty,validator=validateStage,version=1){
+    const stages=[];for(let stage=0;stage<4;stage++){let accepted=false;
+      for(let attempt=0;attempt<3;attempt++){const candidate=varyStage(level,worldIndex,stage,seed,version>=2?'normal':difficulty,attempt,version);if(validator(candidate.level,candidate.changes)){level=candidate.level;stages.push({stage,attempts:attempt+1,fallback:false,...candidate.changes});accepted=true;break;}}
+      if(!accepted)stages.push({stage,attempts:3,fallback:true,gaps:[],platforms:[],enemies:[],items:[]});
+    }level.variation=stages;if(version>=2&&difficulty==='hard')addHardChallenges(level,worldIndex,seed);return level;
+  }
+
+  // HARD uses authored challenge patterns, not larger per-object jitter.
+  function addHardChallenges(level,worldIndex,seed){
+    const baseCount=level.enemies.length;level.hardChallenges=[];
+    const type=worldIndex===0?['grass','stone','wood','ruin']:worldIndex===1?['netherrack','basalt','netherbrick','deepstone']:['endstone','endstone','endbrick','endstone'];
+    const formations=[];for(const item of level.items){if(item.powerup)continue;const group=formations[formations.length-1],last=group?.[group.length-1];if(last&&last.type===item.type&&Math.abs(last.y-item.y)<1&&Math.abs(item.x-last.x-TILE)<1)group.push(item);else formations.push([item]);}
+    const moveTrail=(x,width,kind)=>{let nearby=formations.filter(g=>g.every(i=>!i.hardTrail)&&g.some(i=>i.x>x-48&&i.x<x+width+48));if(kind==='gap'){if(!nearby.length){const row=formations.filter(g=>g.length>=3&&g.every(i=>!i.hardTrail&&i.y>=480&&!protectedSite(level,i.x,i.w))&&Math.abs(g[Math.floor(g.length/2)].x-x-width/2)<14*TILE).sort((a,b)=>Math.abs(a[0].x-x)-Math.abs(b[0].x-x))[0];if(row)nearby=[row];}const trail=nearby.flat().sort((a,b)=>a.x-b.x||a.scoreId-b.scoreId);trail.forEach((i,n)=>{const row=Math.floor(n/10),count=Math.min(10,trail.length-row*10),u=(n%10+1)/(count+1);i.hardTrail=true;i.x=Math.round((x+width*u-9)/4)*4;i.y=Math.round((420-row*48-Math.sin(u*Math.PI)*64)/4)*4;});}else for(const group of nearby){if(group.some(i=>!clearBox(level,i)))for(const i of group){i.hardTrail=true;i.y=344;}}};
+    for(let stage=0;stage<4;stage++){
+      const r=seededRandom(seed,`hard-v2:${worldIndex}:${stage}`),start=stage*140,log={stage,gap:null,barrier:null,enemies:[]};
+      const candidates=[];for(let c=start+31;c<start+116;c++)candidates.push(c);for(let n=candidates.length-1;n>0;n--){const j=Math.floor(r()*(n+1));[candidates[n],candidates[j]]=[candidates[j],candidates[n]];}
+      const safe=(col,width,banks)=>!protectedSite(level,(col-banks)*TILE,(width+banks*2)*TILE)&&Array.from({length:width+banks*2},(_,n)=>col-banks+n).every(c=>floorTop(level,c*TILE+24)===528)&&!level.movers.some(m=>m.baseX+m.w+m.range>(col-banks)*TILE&&m.baseX-m.range<(col+width+banks)*TILE)&&!level.hazards.some(h=>h.x>(col-banks)*TILE&&h.x<(col+width+banks)*TILE)&&!level.enemies.some(e=>e.home>(col-Math.max(banks,width===6?3:2))*TILE&&e.home<(col+width+Math.max(banks,width===6?3:2))*TILE);
+      for(const col of candidates)if(safe(col,6,2)){
+        const x=col*TILE;level.tiles=level.tiles.filter(t=>!(t.x>=x&&t.x<x+6*TILE&&t.y>=528));level.gaps.push([col,6]);level.gaps.sort((a,b)=>a[0]-b[0]);if(worldIndex===1)level.lava.push({x,y:558,w:288,h:90});level.decorations=level.decorations.filter(d=>d.x<x||d.x>=x+288||d.y<100);level.decorations.push({x:x-96,y:528,type:'sign',label:'HARD / DOUBLE JUMP',seed:col});reindex(level);moveTrail(x,288,'gap');log.gap=[col,6];break;
+      }
+      for(const width of [2,1]){for(const col of candidates)if(safe(col,width,2)&&!landingZone(level,col*TILE,120)&&!landingZone(level,(col+width)*TILE,120)){
+        const x=col*TILE;for(let c=col;c<col+width;c++)for(let row=8;row<=10;row++)level.tiles.push({x:c*TILE,y:row*TILE,w:TILE,h:TILE,type:type[stage]});reindex(level);moveTrail(x,width*TILE,'barrier');level.decorations.push({x:x-96,y:528,type:'sign',label:'AIR JUMP OVER',seed:col});log.barrier={x,y:384,w:width*TILE};break;
+      }if(log.barrier)break;}
+      // If an existing island is too crowded for a new pit, widen an ordinary
+      // crossing. Keep its lift so there remains a second, slower safe route.
+      if(!log.gap)for(const g of level.gaps){const [col,width]=g;if(Math.floor(col/140)!==stage||width>5||protectedSite(level,(col-3)*TILE,12*TILE)||level.enemies.some(e=>e.home+e.w>(col-3)*TILE&&e.home<(col+9)*TILE)||level.hazards.some(h=>h.x+h.w>(col-2)*TILE&&h.x<(col+8)*TILE)||!Array.from({length:10},(_,n)=>col+n-2).every(c=>c>=col&&c<col+width||floorTop(level,c*TILE+24)===528))continue;
+        const x=col*TILE;level.tiles=level.tiles.filter(t=>!(t.x>=x&&t.x<x+288&&t.y>=528));g[1]=6;for(const v of level.variation)for(const gap of v.gaps)if(gap[0]===col)gap[1]=6;for(const lava of level.lava)if(lava.x===x)lava.w=288;reindex(level);moveTrail(x,288,'gap');log.gap=[col,6];break;
+      }
+      for(const e of level.enemies)if(Math.floor(e.home/REGION)===stage&&!protectedSite(level,e.home,e.w)&&!e.homePlatformId)e.speed*=1.12;
+      for(const m of level.movers)if(Math.floor(m.baseX/REGION)===stage&&!protectedSite(level,m.baseX,m.w))m.period*=.88;
+      const special=['thornback','emberbat','voidmite'][worldIndex];
+      for(let slot=0;slot<3;slot++){
+        const species=slot===0?special:worldIndex===0?(slot===1?'rattle':'spider'):worldIndex===1?(slot===1?'boar':'magma'):(slot===1?'endwalker':'endwing'),cfg=ENEMY_TYPES[species],id=baseCount+stage*3+slot;
+        const spawnCols=[];for(let c=start+25;c<start+122;c++)spawnCols.push(c);for(let n=spawnCols.length-1;n>0;n--){const j=Math.floor(r()*(n+1));[spawnCols[n],spawnCols[j]]=[spawnCols[j],spawnCols[n]];}
+        for(const col of spawnCols){const x=col*TILE+8,floor=floorTop(level,x+cfg.w/2),y=cfg.flying?304:floor-cfg.h,box={x,y,w:cfg.w,h:cfg.h};if(floor<384||floor>528||protectedSite(level,x,cfg.w)||landingZone(level,x,150)||!clearBox(level,box)||![2,cfg.w-2].every(dx=>floorTop(level,x+dx)===floor)||level.hazards.some(h=>Math.abs(h.x-x)<120)||level.enemies.some(e=>Math.abs(e.home-x)<96&&Math.abs(e.homeY-y)<110)||log.barrier&&Math.abs(x-log.barrier.x)<192)continue;
+          const dir=r()<.5?-1:1;level.enemies.push({id,type:species,hardExtra:true,...box,speed:cfg.speed,dir,spawnDir:dir,vx:dir*cfg.speed,vy:0,grounded:!cfg.flying,alive:true,deadTime:0,respawnDelay:cfg.respawn,respawning:0,spawnX:x,spawnY:y,home:x,homeY:y,platform:null,homePlatformId:null,collisionCooldown:0,walk:id*.7,phase:id*.8,attackTime:3.4+slot*.5,attackCooldown:4.5,warning:0,teleportTime:5,teleportWarning:0,chargeTime:0,chargeCooldown:2.8});log.enemies.push(id);break;
+        }
+      }
+      level.hardChallenges.push(log);
+    }
+  }
+
   class World{
-    constructor(options={}){this.random=options.random||Math.random;this.pickupSpawn={...PICKUP_SPAWN,...options.pickupSpawn};this.reset();}
-    reset(worldIndex=0,carry=false){
+    constructor(options={}){this.options=options;this.pickupSpawn={...PICKUP_SPAWN,...options.pickupSpawn};this.reset();}
+    reset(worldIndex=0,carry=false,run=null){
       const world2Unlocked=!!this.world2Unlocked;
       const saved=carry?{gems:this.gems,powerups:this.powerups,score:this.score,deaths:this.deaths,elapsed:this.elapsed,health:this.player.health}:null;
-      if(!carry){this.scoreTrace=['rules:2'];this.secretStatus='none';this.secretTime=0;this.onlineRunId=null;this.awarded=new Set();this.worldElapsed=[0,0,0];this.timeBonuses=[0,0,0];this.enemiesDefeated=0;this.bossesDefeated=0;this.completionTime=null;this.playerName='';}
+      if(!carry){this.generationVersion=run?.generation_version??this.options.generationVersion??(this.options.random?0:2);this.difficulty=this.generationVersion===0?'legacy':run?.difficulty||this.options.difficulty||'hard';if((this.generationVersion>0&&!['normal','hard'].includes(this.difficulty))||![0,1,2].includes(this.generationVersion))throw new Error('Invalid run settings');this.seed=this.generationVersion?run?.seed??this.options.seed??freshSeed():null;if(this.seed!==null&&(!Number.isInteger(this.seed)||this.seed<0||this.seed>4294967295))throw new Error('Invalid run seed');this.scoreTrace=['rules:2'];this.secretStatus='none';this.secretTime=0;this.onlineRunId=null;this.awarded=new Set();this.worldElapsed=[0,0,0];this.timeBonuses=[0,0,0];this.enemiesDefeated=0;this.bossesDefeated=0;this.completionTime=null;this.playerName='';}
       this.countdown=WORLD_SECONDS;this.deathReason='';
       this.level=worldIndex===2?makeEndLevel():worldIndex===1?makeNetherLevel():makeLevel();this.player={x:132,y:470,w:30,h:46,vx:0,vy:0,grounded:false,facing:1,walk:0,health:saved?saved.health:3,invincible:0,coyote:0,jumpBuffer:0,platform:null,jumpsUsed:0,doubleFlash:0,damageFlash:0,shield:0};
       this.state='start';this.time=0;this.elapsed=saved?saved.elapsed:0;this.camera=0;this.gems=saved?saved.gems:0;this.powerups=saved?saved.powerups:0;this.score=saved?saved.score:0;this.deaths=saved?saved.deaths:0;this.checkpoint={x:132,y:470};this.events=[];this.particles=[];this.activeEnemies=[];this.deathTime=0;this.region=0;this.worldIndex=worldIndex;this.stageIndex=0;this.world2Unlocked=world2Unlocked;this.shake=0;this.lastJump=false;
@@ -380,7 +532,13 @@
       if(worldIndex<2){const b=this.level.boss;Object.assign(b,{health:worldIndex===0?3:4,maxHealth:worldIndex===0?3:4,vulnerable:0,hitCooldown:0,damageFlash:0,defeated:false,collapse:0,portalOpen:false,weak:{x:(worldIndex===0?547:544)*TILE+18,y:410,w:42,h:30}});}
       this.player.healFlash=0;this.placePickups();
       this.level.items.forEach((item,id)=>item.scoreId=id);
+      if(this.generationVersion)this.level=generateCourse(this.level,worldIndex,this.seed,this.difficulty,validateStage,this.generationVersion);this.resetBossRandom();
     }
+    runMetadata(){return this.generationVersion?{seed:this.seed,difficulty:this.difficulty,generation_version:this.generationVersion}:{};}
+    setDifficulty(value){if(this.state!=='start'||!['normal','hard'].includes(value))return false;this.reset(this.worldIndex,false,{seed:this.seed??freshSeed(),difficulty:value,generation_version:2});return true;}
+    resetBossRandom(secret=false){this.bossRandom=seededRandom(this.seed||0,`boss:${secret?'storm':this.worldIndex}`);this.bossBag=[];}
+    bossCooldown(base,min){if(!this.generationVersion)return base;const [lo,hi]=profile(this.difficulty).cooldown;return Math.max(min,base*(lo+this.bossRandom()*(hi-lo)));}
+    firstBossHead(alive,fallback){if(!this.generationVersion)return fallback;this.bossBag=this.bossBag.filter(i=>alive.includes(i));if(!this.bossBag.length){this.bossBag=[...alive];for(let n=this.bossBag.length-1;n>0;n--){const i=Math.floor(this.bossRandom()*(n+1));[this.bossBag[i],this.bossBag[n]]=[this.bossBag[n],this.bossBag[i]];}}return alive.indexOf(this.bossBag.pop());}
     emit(type,data={}){this.events.push({type,...data});}
     setPlayerName(value){if(!validName(value))return false;this.playerName=value.trim();return true;}
     award(key,points,x=this.player.x,y=this.player.y){key=this.worldIndex+':'+key;if(this.awarded.has(key))return false;this.awarded.add(key);this.scoreTrace.push(key);this.score+=points;if(points>0)this.emit('points',{points,x,y});return true;}
@@ -409,9 +567,10 @@
       const p=this.player;Object.assign(p,{x:this.checkpoint.x,y:this.checkpoint.y,vx:0,vy:0,health:3,invincible:1.5,grounded:false,coyote:0,jumpBuffer:0,platform:null,jumpsUsed:0,doubleFlash:0,damageFlash:0,shield:0,healFlash:0});
       // The existing pickaxe is single-use per boss attempt; hearts stay consumed.
       for(const item of this.level.items)if(item.type==='pickaxe'&&this.checkpoint.x<item.x)item.collected=false;
-      for(const enemy of this.level.enemies)if(enemy.alive&&Math.abs(enemy.x-p.x)<190){enemy.x=enemy.home;enemy.y=enemy.homeY;enemy.dir=enemy.id%2?1:-1;}
+      for(const enemy of this.level.enemies)if(enemy.alive&&Math.abs(enemy.x-p.x)<190){enemy.x=enemy.home;enemy.y=enemy.homeY;enemy.dir=enemy.spawnDir??(enemy.id%2?1:-1);}
       for(const hazard of this.level.hazards)if(Math.abs(hazard.x-p.x)<WIDTH){hazard.state='idle';hazard.timer=1.3+(hazard.id%3);hazard.y=hazard.startY;hazard.vy=0;}
       const boss=this.level.boss;boss.phase=0;boss.y=315;boss.attackTime=2.2;boss.warning=0;boss.fire.length=0;
+      this.resetBossRandom();
       if(this.worldIndex===1){this.level.projectiles.length=0;Object.assign(boss,{x:boss.startX,y:404,attackTime:3.5,beamTime:0,beamY:498,beamDirection:-1});}
       if(this.worldIndex<2)Object.assign(boss,{health:boss.maxHealth,vulnerable:0,hitCooldown:0,damageFlash:0,defeated:false,collapse:0,portalOpen:false});
       if(this.worldIndex===2){this.level.projectiles.length=0;Object.assign(boss,{x:boss.startX,y:110,attackTime:3,combatPhase:1,defeated:false,collapse:0,portalOpen:false});for(const head of boss.heads)Object.assign(head,{health:2,warning:0,vulnerable:0,hitCooldown:0,beamTime:0});for(const e of this.level.enemies){e.teleportWarning=0;e.teleportTime=4+e.id%4;}}
@@ -453,7 +612,7 @@
     updateParticles(dt){let write=0;for(let i=0;i<this.particles.length;i++){const bit=this.particles[i];bit.life-=dt;if(bit.life<=0)continue;bit.x+=bit.vx*dt;bit.y+=bit.vy*dt;bit.vy+=460*dt;this.particles[write++]=bit;}this.particles.length=write;}
     damage(source){const p=this.player;if(p.invincible>0||p.shield>0||this.state!=='playing')return;p.health--;p.invincible=1.6;p.damageFlash=.22;p.jumpsUsed=Math.max(1,p.jumpsUsed);p.vy=-300;p.vx=p.x<(source.x+source.w/2)?-230:230;this.shake=.24;this.burst(p.x+15,p.y+20,'#e7a47c',12);this.emit('damage');if(p.health<=0)this.die();}
     die(reason='damage'){if(this.state!=='playing'||this.player.shield>0&&!['timeout','restart'].includes(reason))return;if(this.secretActive()){this.player.health=0;this.finishSecret(false);return;}this.state='dead';this.deathReason=reason;this.deaths++;this.scoreTrace.push('death');this.score=Math.max(0,this.score-2000);this.deathTime=0;this.player.health=0;this.player.vy=-310;this.player.vx*=.3;this.burst(this.player.x+15,Math.min(this.player.y+20,580),'#8ccc65',24);this.emit('death');}
-    killEnemy(enemy,cause='stomp'){if(!enemy.alive)return;enemy.alive=false;enemy.deadTime=0;enemy.respawning=0;enemy.platform=null;enemy.vx=0;enemy.vy=0;if(ENEMY_TYPES[enemy.type].flying){enemy.warning=0;enemy.attackTime=3.2+enemy.id%3*.6;}if(cause!=='fall'&&this.award('enemy:'+enemy.id,POINTS.enemy,enemy.x,enemy.y))this.enemiesDefeated++;this.burst(enemy.x+enemy.w/2,enemy.y+enemy.h/2,ENEMY_TYPES[enemy.type].color,14);if(cause!=='fall')this.emit(cause==='crush'?'crush':'stomp');}
+    killEnemy(enemy,cause='stomp'){if(!enemy.alive)return;enemy.alive=false;enemy.deadTime=0;enemy.respawning=0;enemy.platform=null;enemy.vx=0;enemy.vy=0;if(ENEMY_TYPES[enemy.type].charge){enemy.warning=0;enemy.chargeTime=0;enemy.chargeCooldown=2.8;}if(ENEMY_TYPES[enemy.type].flying){enemy.warning=0;enemy.attackTime=3.2+enemy.id%3*.6;}if(cause!=='fall'&&this.award('enemy:'+enemy.id,POINTS.enemy,enemy.x,enemy.y))this.enemiesDefeated++;this.burst(enemy.x+enemy.w/2,enemy.y+enemy.h/2,ENEMY_TYPES[enemy.type].color,14);if(cause!=='fall')this.emit(cause==='crush'?'crush':'stomp');}
     updateMover(mover){
       const oldX=mover.x,oldY=mover.y;
       if(mover.motion==='pause'&&mover.range){const travel=Math.max(.3,(mover.period-mover.pause*2)/2),t=(this.time+mover.phase)%(travel*2+mover.pause*2);let ratio;if(t<travel)ratio=t/travel;else if(t<travel+mover.pause)ratio=1;else if(t<travel*2+mover.pause)ratio=1-(t-travel-mover.pause)/travel;else ratio=0;const offset=-mover.range+ratio*mover.range*2;if(mover.axis==='y')mover.y=mover.baseY+offset;else mover.x=mover.baseX+offset;mover.direction=t<travel?1:t<travel+mover.pause?0:t<travel*2+mover.pause?-1:0;}
@@ -463,7 +622,7 @@
     }
     enemySpawnPoint(enemy){const platform=enemy.homePlatformId&&this.level.movers.find(m=>m.id===enemy.homePlatformId);return platform?{x:platform.x+enemy.platformOffset,y:platform.y-enemy.h,platform}:{x:enemy.home,y:enemy.homeY,platform:null};}
     updateDeadEnemy(enemy,dt){
-      enemy.deadTime+=dt;if(enemy.respawning>0){const point=this.enemySpawnPoint(enemy);enemy.x=point.x;enemy.y=point.y;if(Math.hypot(point.x-this.player.x,point.y-this.player.y)<240){enemy.respawning=0;enemy.deadTime=Math.max(0,enemy.respawnDelay-.6);return;}enemy.respawning-=dt;if(enemy.respawning<=0){enemy.alive=true;enemy.deadTime=0;enemy.dir=enemy.id%2?1:-1;enemy.vx=enemy.dir*enemy.speed;enemy.vy=0;enemy.platform=point.platform;this.burst(enemy.x+enemy.w/2,enemy.y+enemy.h/2,'#baf3a4',18,'spark');this.emit('respawn');}return;}
+      enemy.deadTime+=dt;if(enemy.respawning>0){const point=this.enemySpawnPoint(enemy);enemy.x=point.x;enemy.y=point.y;if(Math.hypot(point.x-this.player.x,point.y-this.player.y)<240){enemy.respawning=0;enemy.deadTime=Math.max(0,enemy.respawnDelay-.6);return;}enemy.respawning-=dt;if(enemy.respawning<=0){enemy.alive=true;enemy.deadTime=0;enemy.dir=enemy.spawnDir??(enemy.id%2?1:-1);enemy.vx=enemy.dir*enemy.speed;enemy.vy=0;enemy.platform=point.platform;this.burst(enemy.x+enemy.w/2,enemy.y+enemy.h/2,'#baf3a4',18,'spark');this.emit('respawn');}return;}
       if(enemy.deadTime<enemy.respawnDelay)return;const point=this.enemySpawnPoint(enemy),p=this.player,safe=Math.hypot(point.x-p.x,point.y-p.y)>280&&!this.level.enemies.some(other=>other!==enemy&&other.alive&&Math.abs(other.x-point.x)<enemy.w+20&&Math.abs(other.y-point.y)<50);if(safe){enemy.x=point.x;enemy.y=point.y;enemy.respawning=.72;this.emit('respawnWarning');}
     }
     updateEnemy(enemy,dt){
@@ -471,15 +630,21 @@
       if(ENEMY_TYPES[enemy.type].flying){
         enemy.phase+=dt;enemy.x+=enemy.dir*enemy.speed*dt;enemy.y=enemy.homeY+Math.sin(enemy.phase*2)*24;enemy.vy=0;enemy.walk+=dt*4;
         if(enemy.x<enemy.home-72){enemy.x=enemy.home-72;enemy.dir=1;}else if(enemy.x>enemy.home+72){enemy.x=enemy.home+72;enemy.dir=-1;}
-        if(['cinder','endwing','crystal'].includes(enemy.type)&&Math.abs(enemy.x-this.player.x)<560){enemy.attackTime-=dt;
-          if(enemy.attackTime<=.7&&enemy.warning===0){enemy.warning=.7;enemy.targetX=this.player.x+15;enemy.targetY=this.player.y+23;this.emit('dragonWarning');}
+        if(['cinder','endwing','crystal','emberbat'].includes(enemy.type)&&Math.abs(enemy.x-this.player.x)<560){enemy.attackTime-=dt;
+          if(enemy.attackTime<=(ENEMY_TYPES[enemy.type].warningLead||.7)&&enemy.warning===0){enemy.warning=ENEMY_TYPES[enemy.type].warningLead||.7;enemy.targetX=this.player.x+15;enemy.targetY=this.player.y+23;this.emit('dragonWarning');}
           if(enemy.warning>0)enemy.warning=Math.max(.001,enemy.warning-dt);
-          if(enemy.attackTime<=0){const x=enemy.x+enemy.w/2,y=enemy.y+enemy.h/2,dx=enemy.targetX-x,dy=enemy.targetY-y,length=Math.hypot(dx,dy)||1;this.level.projectiles.push({x,y,w:16,h:16,vx:dx/length*225,vy:dy/length*225,life:3,purple:enemy.type!=='cinder'});enemy.attackTime=4.6;enemy.warning=0;this.emit('dragonFire');}
+          if(enemy.attackTime<=0){const x=enemy.x+enemy.w/2,y=enemy.y+enemy.h/2,dx=enemy.targetX-x,dy=enemy.targetY-y,length=Math.hypot(dx,dy)||1;this.level.projectiles.push({x,y,w:16,h:16,vx:dx/length*225,vy:dy/length*225,life:3,purple:!['cinder','emberbat'].includes(enemy.type)});enemy.attackTime=enemy.attackCooldown||4.6;enemy.warning=0;this.emit('dragonFire');}
         }return;
       }
       if(enemy.type==='endwalker')this.teleportEnemy(enemy,dt);
       enemy.collisionCooldown=Math.max(0,enemy.collisionCooldown-dt);enemy.walk+=Math.abs(enemy.vx)*dt*.09;const ahead=enemy.x+(enemy.dir>0?enemy.w+9:-9);if(enemy.grounded&&!this.supportAt(ahead,enemy.y+enemy.h+8,enemy.platform))enemy.dir*=-1;
-      enemy.vx=enemy.dir*enemy.speed;enemy.vy=Math.min(800,enemy.vy+1500*dt);if(this.move(enemy,dt,this.nearby(enemy)))enemy.dir*=-1;if(enemy.y>HEIGHT+60)this.killEnemy(enemy,'fall');
+      enemy.vx=enemy.dir*enemy.speed*(ENEMY_TYPES[enemy.type].charge?this.chargeEnemy(enemy,dt):1);enemy.vy=Math.min(800,enemy.vy+1500*dt);if(this.move(enemy,dt,this.nearby(enemy)))enemy.dir*=-1;if(enemy.y>HEIGHT+60)this.killEnemy(enemy,'fall');
+    }
+    chargeEnemy(enemy,dt){
+      if(enemy.chargeTime>0){enemy.chargeTime=Math.max(0,enemy.chargeTime-dt);return 1.9;}
+      if(enemy.warning>0){enemy.warning=Math.max(0,enemy.warning-dt);if(enemy.warning===0){enemy.dir=enemy.targetDirection;enemy.chargeTime=.55;enemy.chargeCooldown=3.2;}return .2;}
+      enemy.chargeCooldown=(enemy.chargeCooldown??2.8)-dt;
+      if(enemy.chargeCooldown<=0&&enemy.grounded&&Math.abs(enemy.x-this.player.x)<370&&Math.abs(enemy.y-this.player.y)<90){enemy.warning=.7;enemy.targetDirection=this.player.x<enemy.x?-1:1;this.emit('dragonWarning');return .2;}return 1;
     }
     teleportEnemy(enemy,dt){
       enemy.teleportTime-=dt;if(enemy.teleportTime<=.8&&enemy.teleportWarning===0)enemy.teleportWarning=.8;
@@ -504,7 +669,7 @@
       hazard.impactTime-=dt;if(hazard.impactTime<=0){hazard.state='idle';hazard.y=hazard.startY;hazard.timer=hazard.cycle+(hazard.id%3)*.9;}
     }
     updateProjectiles(projectiles,dt){
-      for(let i=projectiles.length-1;i>=0;i--){const fire=projectiles[i];fire.x+=fire.vx*dt;fire.y+=fire.vy*dt;fire.life-=dt;if(overlaps(this.player,fire))this.damage(fire);if(fire.life<=0||this.solidAt(fire.x+fire.w/2,fire.y+fire.h/2))projectiles.splice(i,1);}
+      for(let i=projectiles.length-1;i>=0;i--){const fire=projectiles[i];fire.x+=fire.vx*dt;fire.y+=fire.vy*dt;fire.life-=dt;if(overlaps(this.player,fire)){this.damage(fire);if(this.state!=='playing')return;}if(fire.life<=0||this.solidAt(fire.x+fire.w/2,fire.y+fire.h/2))projectiles.splice(i,1);}
     }
     wardenBeam(){const b=this.level.boss;return{x:b.beamDirection<0?b.x-660:b.x+b.w,y:b.beamY-9,w:660,h:18};}
     updateWarden(dt,previousX=this.player.x){
@@ -514,7 +679,7 @@
       // Lock the aim once. One full second to react, then a generous cooldown.
       if(boss.attackTime<=1&&!boss.warning){boss.warning=1;boss.beamY=clamp(p.y+p.h/2,352,498);boss.beamDirection=p.x<boss.x?-1:1;this.emit('wardenWarning');}
       if(boss.warning>0)boss.warning=Math.max(.001,boss.warning-dt);
-      if(boss.attackTime<=0){boss.beamTime=.65;boss.warning=0;boss.attackTime=Math.max(3.6,5.2-boss.phase*.025);boss.vulnerable=3.4;this.shake=.2;this.emit('wardenLaser');}
+      if(boss.attackTime<=0){boss.beamTime=.65;boss.warning=0;boss.attackTime=this.bossCooldown(Math.max(3.6,5.2-boss.phase*.025),3.65);boss.vulnerable=3.4;this.shake=.2;this.emit('wardenLaser');}
       if(boss.beamTime>0){const beam=this.wardenBeam();if(overlaps(p,beam)){this.damage(beam);p.x=Math.min(p.x,previousX);p.vx=Math.min(0,p.vx);}}
       // Contact blocks passage even during short damage immunity. Jump over it.
       if(overlaps(p,boss)){this.damage(boss);p.x=previousX<boss.x+boss.w/2?boss.x-p.w:boss.x+boss.w;p.vx=0;}
@@ -532,7 +697,7 @@
       if(boss.warning>0)boss.warning=Math.max(0,boss.warning-dt);
       if(boss.attackTime<=0){
         const x=boss.x-12,y=boss.y+55,dx=boss.targetX-x,dy=boss.targetY-y,length=Math.hypot(dx,dy)||1;
-        boss.fire.push({x,y,w:20,h:20,vx:dx/length*275,vy:dy/length*275,life:3});boss.attackTime=4.2;boss.warning=0;boss.vulnerable=3.4;this.emit('dragonFire');
+        boss.fire.push({x,y,w:20,h:20,vx:dx/length*275,vy:dy/length*275,life:3});boss.attackTime=this.bossCooldown(4.2,3.8);boss.warning=0;boss.vulnerable=3.4;this.emit('dragonFire');
       }
       this.updateProjectiles(boss.fire,dt);
       this.stompCore(boss,previousBottom);if(boss.health===0)this.defeatBoss(boss);
@@ -551,7 +716,7 @@
       const motion=phase===1?.6:phase===2?.85:1.05;if(!b.warning&&!b.heads.some(h=>h.beamTime>0)){b.x=b.startX+Math.sin(b.phase*motion)*130;b.y=110+Math.sin(b.phase*.75)*30;}
       if(overlaps(p,b)){this.damage(b);p.x=previousX<b.x?b.x-p.w:b.x+b.w;p.vx=0;}
       b.attackTime-=dt;
-      if(b.attackTime<=1.2&&!b.warning){b.warning=1.2;const alive=b.heads.map((h,i)=>h.health>0?i:-1).filter(i=>i>=0),first=Math.floor(b.phase/6)%alive.length;
+      if(b.attackTime<=1.2&&!b.warning){b.warning=1.2;const alive=b.heads.map((h,i)=>h.health>0?i:-1).filter(i=>i>=0&&(!this.generationVersion||phase>1||i<2)),first=this.firstBossHead(alive,Math.floor(b.phase/6)%alive.length);
         for(let n=0;n<Math.min(phase,alive.length);n++){const h=b.heads[alive[(first+n)%alive.length]];h.warning=1.2;h.targetX=p.x+15;h.targetY=clamp(p.y+23,280,498);h.originX=b.x+20;h.originY=b.y+40+n*27;}this.emit('dragonWarning');}
       for(let i=0;i<3;i++){const h=b.heads[i];h.vulnerable=Math.max(0,h.vulnerable-dt);h.hitCooldown=Math.max(0,h.hitCooldown-dt);h.beamTime=Math.max(0,h.beamTime-dt);if(h.warning>0)h.warning=Math.max(.001,h.warning-dt);
         if(h.beamTime>0&&overlaps(p,this.endBeam(h)))this.damage(this.endBeam(h));
@@ -560,7 +725,7 @@
       }
       if(b.attackTime<=0){for(let i=0;i<3;i++){const h=b.heads[i];if(h.health<=0||h.warning===0)continue;h.warning=0;h.vulnerable=4.3;
           if(i===2){h.beamTime=.65;this.emit('endLaser');}else{const x=h.originX,y=h.originY,dx=h.targetX-x,dy=h.targetY-y,len=Math.hypot(dx,dy)||1;b.fire.push({x,y,w:20,h:20,vx:dx/len*(i===0?240:215),vy:dy/len*(i===0?240:215),life:4,purple:i===1});this.emit('dragonFire');}}
-        b.warning=0;b.attackTime=phase===3?6.8:6;
+        b.warning=0;b.attackTime=this.bossCooldown(phase===3?6.8:6,5.3);
       }
       this.updateProjectiles(b.fire,dt);
       if(b.heads.every(h=>h.health===0)){b.defeated=true;if(this.award('boss',POINTS.boss,b.x,b.y))this.bossesDefeated++;b.fire.length=0;for(const h of b.heads){h.beamTime=h.warning=0;}this.burst(b.x+80,b.y+60,'#b985ed',60,'spark');this.emit('bossDefeat');}
@@ -582,7 +747,7 @@
       const boss={kind:'storm',x:1000,y:70,w:400,h:390,startX:1000,health:9,maxHealth:9,combatPhase:1,phase:0,attackTime:3,warning:0,vulnerable:0,hitCooldown:0,damageFlash:0,fire:[],beamTime:0,tentacleTime:0,targetX:0,targetY:0,defeated:false,collapse:0,portalOpen:false,weak:{x:770,y:410,w:52,h:30}};
       this.level={secret:true,tiles,tilesByColumn,movers,boss,width:32*TILE,items:[],enemies:[],hazards:[],projectiles:[],lava:[],decorations:[],checkpoints:[],gaps:[],regions:['The last silence','The last silence','The last silence','Wither Storm'],goal:{x:1450,y:384,w:72,h:144}};
       Object.assign(this.player,{x:300,y:482,vx:0,vy:0,health:3,shield:0,invincible:0,damageFlash:0,healFlash:.6,jumpsUsed:0,grounded:true,coyote:.11,jumpBuffer:0,platform:null});
-      this.secretStatus='active';this.state='playing';this.region=this.stageIndex=3;this.camera=0;this.time=0;this.lastJump=false;this.particles.length=0;this.events.length=0;this.emit('secretStart');return true;
+      this.resetBossRandom(true);this.secretStatus='active';this.state='playing';this.region=this.stageIndex=3;this.camera=0;this.time=0;this.lastJump=false;this.particles.length=0;this.events.length=0;this.emit('secretStart');return true;
     }
     finishSecret(won){
       if(!['pending','active'].includes(this.secretStatus))return false;
@@ -608,8 +773,8 @@
         // All heads aim once at the warning; no homing or random hazards.
         for(let i=0;i<b.combatPhase;i++){const x=b.x-15,y=170+i*68,dx=b.targetX-x,dy=b.targetY-y,length=Math.hypot(dx,dy)||1;
           b.fire.push({x,y,w:18,h:18,vx:dx/length*(280+i*25),vy:dy/length*(280+i*25),life:2.1,purple:true});}
-        b.warning=0;b.attackTime=[0,6.8,6.2,5.8][b.combatPhase];b.vulnerable=4.8;
-        b.tentacleTime=b.combatPhase===1&&Math.floor(b.phase/6)%2===0?0:.65;b.beamTime=b.combatPhase>1?.85:0;this.emit('stormFire');
+        b.warning=0;b.attackTime=this.bossCooldown([0,6.8,6.2,5.8][b.combatPhase],5.4);b.vulnerable=4.8;
+        b.tentacleTime=b.combatPhase===1&&(this.generationVersion?this.bossRandom()<.5:Math.floor(b.phase/6)%2===0)?0:.65;b.beamTime=b.combatPhase>1?.85:0;this.emit('stormFire');
       }
       this.updateProjectiles(b.fire,dt);if(!this.secretActive())return;
       if(b.tentacleTime>0&&overlaps(p,this.stormTentacle()))this.damage(this.stormTentacle());
@@ -636,9 +801,9 @@
       p.invincible=Math.max(0,p.invincible-dt);p.shield=Math.max(0,p.shield-dt);p.doubleFlash=Math.max(0,p.doubleFlash-dt);p.damageFlash=Math.max(0,p.damageFlash-dt);p.coyote=p.grounded?.11:Math.max(0,p.coyote-dt);p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
       if(p.shield<1e-9)p.shield=0;p.healFlash=Math.max(0,p.healFlash-dt);
       const jumpPressed=!!input.jump&&!this.lastJump;if(jumpPressed)p.jumpBuffer=.14;if(!input.jump&&this.lastJump&&p.vy<-220)p.vy=-220;this.lastJump=!!input.jump;
-      const direction=(input.right?1:0)-(input.left?1:0),speed=input.run?310:205,target=direction*speed,acceleration=p.grounded?1750:1180;p.vx+=clamp(target-p.vx,-acceleration*dt,acceleration*dt);if(direction)p.facing=direction;
-      if(p.jumpBuffer>0){if(p.coyote>0&&p.jumpsUsed===0){p.vy=-570;p.grounded=false;p.coyote=0;p.jumpBuffer=0;p.platform=null;p.jumpsUsed=1;this.emit('jump');}else if(!p.grounded&&p.jumpsUsed>0&&p.jumpsUsed<2){p.vy=-500;p.jumpBuffer=0;p.platform=null;p.jumpsUsed=2;p.doubleFlash=.3;this.burst(p.x+p.w/2,p.y+p.h,'#d6f4a3',14,'spark');this.emit('doublejump');}}
-      const wasGrounded=p.grounded,fallSpeed=p.vy,previousX=p.x;p.vy=Math.min(900,p.vy+1500*dt);const previousBottom=p.y+p.h;this.move(p,dt,this.nearby(p));p.x=clamp(p.x,0,this.level.width-p.w);
+      const direction=(input.right?1:0)-(input.left?1:0),speed=input.run?PHYSICS.run:PHYSICS.walk,target=direction*speed,acceleration=p.grounded?1750:1180;p.vx+=clamp(target-p.vx,-acceleration*dt,acceleration*dt);if(direction)p.facing=direction;
+      if(p.jumpBuffer>0){if(p.coyote>0&&p.jumpsUsed===0){p.vy=-PHYSICS.jump;p.grounded=false;p.coyote=0;p.jumpBuffer=0;p.platform=null;p.jumpsUsed=1;this.emit('jump');}else if(!p.grounded&&p.jumpsUsed>0&&p.jumpsUsed<2){p.vy=-PHYSICS.airJump;p.jumpBuffer=0;p.platform=null;p.jumpsUsed=2;p.doubleFlash=.3;this.burst(p.x+p.w/2,p.y+p.h,'#d6f4a3',14,'spark');this.emit('doublejump');}}
+      const wasGrounded=p.grounded,fallSpeed=p.vy,previousX=p.x;p.vy=Math.min(PHYSICS.maxFall,p.vy+PHYSICS.gravity*dt);const previousBottom=p.y+p.h;this.move(p,dt,this.nearby(p));p.x=clamp(p.x,0,this.level.width-p.w);
       if(p.grounded){p.walk+=Math.abs(p.vx)*dt*.085;if(!wasGrounded){p.jumpsUsed=0;if(fallSpeed>230){this.burst(p.x+p.w/2,p.y+p.h,'#b8a37a',8,'dust');this.emit('land');}}}else if(p.coyote<=0&&p.jumpsUsed===0)p.jumpsUsed=1;if(p.y>HEIGHT+70){this.die();return;}
       if(this.worldIndex===1&&this.level.lava.some(lava=>overlaps(p,lava))){this.die();return;}
       for(const item of this.level.items)if(!item.collected&&overlaps(p,item)){item.collected=true;const reward=item.type==='mossheart'?'mossheart':item.type==='pickaxe'?'pickaxe':'gem';const first=this.award(reward==='pickaxe'?'pickaxe':'item:'+item.scoreId,POINTS[reward],item.x,item.y);if(item.type==='mossheart'){if(p.health<3){p.health=3;p.healFlash=.6;this.burst(item.x+12,item.y+15,'#d5ff96',24,'spark');}this.emit('heal');}else if(item.type==='pickaxe'){this.powerups++;p.shield=3;this.burst(item.x+12,item.y+15,'#ffd875',24,'spark');this.emit('powerup');}else{if(first)this.gems++;this.burst(item.x+9,item.y+12,{emerald:'#a8ef9d',gold:'#ffe594',diamond:'#95eaf5',redstone:'#ffaca0'}[item.type],7);this.emit('collect',{kind:item.type});}}
@@ -655,7 +820,7 @@
       }
     }
   }
-  const api={POINTS,WORLD_SECONDS,RETRY_SECONDS,validName,World,makeLevel,makeNetherLevel,makeEndLevel,TILE,WIDTH,HEIGHT,REGION,clamp,overlaps,regions,netherRegions,endRegions,worlds,ENEMY_TYPES,PICKUP_SPAWN};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.MossWorld=api;
+  const api={PHYSICS,seededRandom,measureJumps,validateStage,generateCourse,POINTS,WORLD_SECONDS,RETRY_SECONDS,validName,World,makeLevel,makeNetherLevel,makeEndLevel,TILE,WIDTH,HEIGHT,REGION,clamp,overlaps,regions,netherRegions,endRegions,worlds,ENEMY_TYPES,PICKUP_SPAWN};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.MossWorld=api;
 })(typeof window!=='undefined'?window:globalThis);
 
 </script>
@@ -1495,7 +1660,15 @@
       if(!e.alive&&e.deadTime>.23)return;const c=this.ctx;c.save();c.translate(Math.round(e.x),Math.round(e.y+e.h));
       if(!e.alive)c.scale(1,Math.max(.05,1-e.deadTime*4));
       const step=Math.sin(time*9+(e.walk||e.home))*3;
-      if(e.type==='endwalker'){this.rect(4,-34+step,7,34-step,'#171221');this.rect(19,-34-step,7,34+step,'#171221');this.rect(2,-51,25,24,'#272032');this.rect(0,-68,28,20,'#191322');this.rect(3,-62,8,4,'#c68bff');this.rect(17,-62,8,4,'#c68bff');this.rect(-5,-48,5,31,'#21172c');this.rect(28,-48,5,31,'#21172c');if(e.teleportWarning>0){this.rect(-8,-76,e.w+16,3,'#dca7ff');this.rect(-8,-76,3,76,'#a678d2');this.rect(e.w+5,-76,3,76,'#a678d2');}}
+      if(e.type==='thornback'||e.type==='voidmite'){
+        const voidling=e.type==='voidmite',shell=voidling?'#55446f':'#657740',rim=voidling?'#b995f1':'#b9ce76',eye=e.warning>0?'#ffe3a0':voidling?'#99eced':'#eff6b5';
+        for(let n=0;n<3;n++){this.rect(n*12,-7+(n%2?step:-step),8,7,'#283d37');this.rect(n*12+2,-e.h-4,5,8,rim);}this.rect(0,-e.h+7,e.w,e.h-10,shell);this.rect(4,-e.h,e.w-8,e.h-5,rim);this.rect(8,-e.h+3,e.w-16,8,shell);this.rect(4,-13,7,5,eye);this.rect(e.w-11,-13,7,5,eye);this.rect(12,-4,e.w-24,4,shell);
+        if(e.warning>0){this.rect(-3,-e.h-15,e.w+6,4,'#f4c56c');this.rect(e.dir>0?e.w+5:-11,-15,6,5,'#ffe5ac');}
+      }
+      else if(e.type==='emberbat'){
+        const flap=Math.sin(time*13+e.id)*9;this.rect(-16,-20+flap,22,8,'#8c3b4a');this.rect(e.w-6,-20-flap,22,8,'#8c3b4a');this.rect(-16,-13+flap,9,6,'#f07b45');this.rect(e.w+7,-13-flap,9,6,'#f07b45');this.rect(3,-30,e.w-6,25,'#b74e43');this.rect(7,-34,5,9,'#f4b26a');this.rect(e.w-12,-34,5,9,'#f4b26a');this.rect(7,-22,6,5,'#ffe3a0');this.rect(e.w-13,-22,6,5,'#ffe3a0');this.rect(13,-12,8,6,e.warning>0?'#fff4c1':'#642c37');if(e.warning>0)this.rect(11,-44,12,7,'#ffd277');
+      }
+      else if(e.type==='endwalker'){this.rect(4,-34+step,7,34-step,'#171221');this.rect(19,-34-step,7,34+step,'#171221');this.rect(2,-51,25,24,'#272032');this.rect(0,-68,28,20,'#191322');this.rect(3,-62,8,4,'#c68bff');this.rect(17,-62,8,4,'#c68bff');this.rect(-5,-48,5,31,'#21172c');this.rect(28,-48,5,31,'#21172c');if(e.teleportWarning>0){this.rect(-8,-76,e.w+16,3,'#dca7ff');this.rect(-8,-76,3,76,'#a678d2');this.rect(e.w+5,-76,3,76,'#a678d2');}}
       else if(e.type==='endwing'||e.type==='crystal'){const crystal=e.type==='crystal';this.rect(2,-e.h,e.w-4,e.h-5,'#635076');this.rect(8,-e.h+4,e.w-16,e.h-12,'#b287d5');this.rect(8,-e.h+12,6,5,'#efc1ff');this.rect(e.w-14,-e.h+12,6,5,'#efc1ff');if(!crystal){this.rect(-17,-20+step,20,9,'#796494');this.rect(e.w-2,-20-step,20,9,'#796494');}if(e.warning>0){this.rect(10,-e.h-15,12,9,'#c398ff');this.rect(14,-e.h-12,4,4,'#fff1ff');}}
       else if(e.type==='magma'){this.rect(0,-22,e.w,22,'#7d2f39');this.rect(3,-23,e.w-6,7,'#db5f32');this.rect(4,-14,e.w-8,5,'#ffb846');this.rect(4,-9,5,4,'#241c2a');this.rect(e.w-9,-9,5,4,'#241c2a');this.rect(7,-3,14,3,'#f68d3a');}
       else if(e.type==='boar'){this.rect(3,-12+step,11,12-step,'#49333a');this.rect(23,-12-step,11,12+step,'#49333a');this.rect(2,-29,32,20,'#726477');this.rect(5,-26,25,4,'#b99b78');this.rect(3,-44,30,22,'#b77676');this.rect(0,-48,8,11,'#cf9290');this.rect(28,-48,8,11,'#cf9290');this.rect(10,-32,19,10,'#e3a39a');this.rect(14,-29,4,4,'#553441');this.rect(22,-29,4,4,'#553441');this.rect(6,-37,5,4,'#ffe3a1');this.rect(27,-37,5,4,'#ffe3a1');this.rect(-5,-30,7,23,'#968598');this.rect(36,-36,5,31,'#c2a88b');}
@@ -1771,11 +1944,15 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
   const write=(key,value)=>{try{root.localStorage.setItem(PREFIX+key,JSON.stringify(value));return true;}catch(_){return false;}};
   const uuid=()=>{const b=new Uint8Array(16);root.crypto.getRandomValues(b);b[6]=(b[6]&15)|64;b[8]=(b[8]&63)|128;const h=[...b].map(v=>v.toString(16).padStart(2,'0')).join('');return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;};
   const duration=ms=>`${Math.floor(ms/60000)}:${Math.floor(ms/1000%60).toString().padStart(2,'0')}`;
+  const runFieldsOK=r=>r.generation_version===undefined?r.seed===undefined&&r.difficulty===undefined:[1,2].includes(r.generation_version)&&['normal','hard'].includes(r.difficulty)&&Number.isInteger(r.seed)&&r.seed>=0&&r.seed<=4294967295;
+  const cacheKey=(category,generation)=>category==='legacy'?'legacy':category+':'+generation;
   class Leaderboard {
     constructor(config=root.CreeperLeaderboardConfig||{}){
       this.url=(config.url||'').replace(/\/$/,'');this.key=config.key||'';this.configured=/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(this.url)&&!!this.key;
       this.session=read('session',null);this.pending=read('pending',[]);this.pending=Array.isArray(this.pending)?this.pending.filter(p=>p&&typeof p.id==='string'&&nameOK(p.name)&&Array.isArray(p.trace)):[];
       this.cache=read('cache',null);if(!this.cache||!Array.isArray(this.cache.top))this.cache=null;this.active=null;this.authPromise=null;this.sending=null;this.storageAvailable=true;
+      this.category='hard';this.generation=2;this.caches=read('categoryCaches',{})||{};if(this.cache)this.caches.legacy=this.cache;
+      for(const category of ['normal','hard'])if(this.caches[category]){this.caches[category+':1']=this.caches[category];delete this.caches[category];}
       const attempt=read('secretAttempt',null);
       if(attempt?.record&&typeof attempt.record.id==='string'&&nameOK(attempt.record.name)&&Array.isArray(attempt.record.trace)&&Array.isArray(attempt.record.world_seconds)&&attempt.record.world_seconds.length===3&&attempt.record.world_seconds.every(n=>Number.isFinite(n)&&n>0)&&Number.isInteger(attempt.record.score)&&attempt.record.score>=0&&attempt.record.deaths===0){
         // An interrupted attempt is spent, never resumed. Preserve the world win.
@@ -1811,25 +1988,28 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     }
     begin(world){world.onlineRunId=uuid();this.identity().catch(()=>{});}
     reserveSecret(world,resolved=false){
-      const record={id:world.onlineRunId||(world.onlineRunId=uuid()),name:world.playerName,score:world.score,deaths:world.deaths,world_seconds:[...world.worldElapsed],trace:[...world.scoreTrace]};
+      const record={id:world.onlineRunId||(world.onlineRunId=uuid()),name:world.playerName,score:world.score,deaths:world.deaths,world_seconds:[...world.worldElapsed],trace:[...world.scoreTrace],...world.runMetadata()};
       const summary={gems:world.gems,enemiesDefeated:world.enemiesDefeated,timeBonuses:[...world.timeBonuses],secretStatus:resolved?world.secretStatus:'failed'};
       this.storageAvailable=write('secretAttempt',{record,summary,resolved});
     }
     restoreSecretResult(world){
       if(!this.recovered)return false;const {record,summary}=this.recovered;this.recovered=null;
-      world.reset(2);const elapsed=record.world_seconds.reduce((a,b)=>a+b,0);Object.assign(world,summary,{state:'complete',region:3,stageIndex:3,score:record.score,deaths:record.deaths,playerName:record.name,elapsed,worldElapsed:record.world_seconds,scoreTrace:record.trace,onlineRunId:record.id,bossesDefeated:3,completionTime:elapsed,secretStatus:record.trace.includes('secret:victory')?'won':'failed'});return true;
+      if(!runFieldsOK(record))return false; // Keep unsupported records queued; never reinterpret their rules.
+      world.reset(2,false,{seed:record.seed??null,difficulty:record.difficulty||'legacy',generation_version:record.generation_version||0});const elapsed=record.world_seconds.reduce((a,b)=>a+b,0);Object.assign(world,summary,{state:'complete',region:3,stageIndex:3,score:record.score,deaths:record.deaths,playerName:record.name,elapsed,worldElapsed:record.world_seconds,scoreTrace:record.trace,onlineRunId:record.id,bossesDefeated:3,completionTime:elapsed,secretStatus:record.trace.includes('secret:victory')?'won':'failed'});return true;
     }
     capture(world){
       if(world.scoreTrace[0]==='rules:2'&&world.deaths===0&&!['won','failed'].includes(world.secretStatus))return null;
       if(world.worldIndex!==2||world.state!=='complete'||world.bossesDefeated!==3||world.completionTime===null||!nameOK(world.playerName)||![0,1,2].every(n=>['boss','world','timeBonus','stage:1','stage:2','stage:3'].every(key=>world.scoreTrace.includes(n+':'+key))))return null;
       const id=world.onlineRunId||(world.onlineRunId=uuid());
       const existing=this.pending.find(p=>p.id===id);if(existing){this.active=existing;return existing;}
-      const record={id,name:world.playerName,score:world.score,deaths:world.deaths,world_seconds:[...world.worldElapsed],trace:[...world.scoreTrace]};
+      const record={id,name:world.playerName,score:world.score,deaths:world.deaths,world_seconds:[...world.worldElapsed],trace:[...world.scoreTrace],...world.runMetadata()};
       this.active=record;this.pending.push(record);this.storageAvailable=write('pending',this.pending);if(this.storageAvailable&&world.secretStatus!=='none')write('secretAttempt',null);return record;
     }
     async submit(record){
       if(this.sending)return this.sending.then(()=>this.pending.some(p=>p.id===record.id)?this.submit(record):null);
       this.sending=(async()=>{
+        if(!runFieldsOK(record))throw new Error('Unsupported saved run settings. Your score remains saved; no legacy submission was made.');
+        if(record.generation_version){await this.categoryData(record.difficulty,undefined,record.generation_version);}
         const session=await this.identity();
         if(record.owner&&record.owner!==session.user.id)throw new Error('This saved run belongs to a different browser identity.');
         record.owner=session.user.id;write('pending',this.pending);
@@ -1843,17 +2023,25 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
         this.pending=this.pending.filter(p=>p.id!==record.id);write('pending',this.pending);write('last',result);return result;
       })().finally(()=>{this.sending=null;});return this.sending;
     }
-    async load(){
+    async categoryData(category,token,generation=2){
+      if(!['normal','hard'].includes(category))throw new Error('Invalid leaderboard category.');
+      if(!this.configured)throw new Error('Global leaderboard is awaiting backend setup. Your result is saved locally.');
+      try{const data=await this.request('/rest/v1/rpc/read_leaderboard_category'+(generation===2?'_v2':''),{category},token);if(data?.generation_version!==generation||data.category!==category||!Array.isArray(data.top))throw new Error('Unsupported leaderboard version.');return data;}
+      catch(error){if(error.status===404||error.message==='Unsupported leaderboard version.')throw new Error('Difficulty leaderboard awaits the procedural database migration. Your score is saved locally.');throw error;}
+    }
+    async load(category='legacy',generation=2){
       if(!this.configured)throw new Error('Global leaderboard is awaiting backend setup.');
       let token;if(this.session){try{token=(await this.identity()).access_token;}catch(_){}}
-      const data=await this.request('/rest/v1/rpc/read_leaderboard',{},token);
+      const data=category==='legacy'?await this.request('/rest/v1/rpc/read_leaderboard',{},token):await this.categoryData(category,token,generation);
       if(!data||!Array.isArray(data.top))throw new Error('Invalid leaderboard response.');
-      this.cache={...data,cachedAt:Date.now()};write('cache',this.cache);return this.cache;
+      this.cache={...data,cachedAt:Date.now()};this.caches[cacheKey(category,generation)]=this.cache;write('categoryCaches',this.caches);if(category==='legacy')write('cache',this.cache);return this.cache;
     }
     mount(container,record=null){
       const doc=container.ownerDocument;
       container.className='leaderboard';container.replaceChildren();
       const heading=doc.createElement('h2');heading.textContent='GLOBAL LEADERBOARD';container.append(heading);
+      this.category=record&&['normal','hard'].includes(record.difficulty)?record.difficulty:'hard';this.generation=record?.generation_version||2;this.cache=this.caches[cacheKey(this.category,this.generation)]||null;
+      const categorySelect=doc.createElement('select');categorySelect.className='leaderboard-category';categorySelect.setAttribute('aria-label','Leaderboard difficulty');for(const value of ['hard','normal']){const option=doc.createElement('option');option.value=value;option.textContent=value.toUpperCase();categorySelect.append(option);}categorySelect.value=this.category;container.append(categorySelect);
       const status=doc.createElement('p');status.className='leaderboard-status';status.setAttribute('role','status');container.append(status);
       const rows=doc.createElement('div');rows.className='leaderboard-rows';container.append(rows);
       const refresh=doc.createElement('button');refresh.className='menu-button';refresh.textContent='REFRESH';container.append(refresh);
@@ -1861,7 +2049,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
       const note=doc.createElement('p');note.className='leaderboard-note';note.textContent='Best validated run per browser identity. Names are display labels. Client-side gameplay is not cheat-proof.';container.append(note);
       const render=data=>{
         rows.replaceChildren();
-        const table=doc.createElement('table');const caption=doc.createElement('caption');caption.textContent='Completed three-world runs · Score ↓ · Time ↑ · Deaths ↑';table.append(caption);
+        const table=doc.createElement('table');const caption=doc.createElement('caption');caption.textContent=this.category.toUpperCase()+(this.category!=='legacy'&&this.generation===1?' · Previous course':'')+' · Completed three-world runs · Score ↓ · Time ↑ · Deaths ↑';table.append(caption);
         const head=doc.createElement('tr');for(const text of ['#','Player','Score','Deaths','Time','Date']){const th=doc.createElement('th');th.scope='col';th.textContent=text;head.append(th);}table.append(head);
         const entries=[...data.top];if(data.me&&!entries.some(e=>e.id===data.me.id))entries.push(data.me);
         for(const entry of entries){const tr=doc.createElement('tr');if(entry.id===data.me?.id){tr.className='current-player';tr.setAttribute('aria-label','Your best result');}
@@ -1869,7 +2057,8 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
         rows.append(table);if(!entries.length){const empty=doc.createElement('p');empty.textContent='No completed runs yet. Be the first!';rows.append(empty);}
       };
       if(this.cache){render(this.cache);status.textContent='Cached scores · '+new Date(this.cache.cachedAt).toLocaleString();}
-      const load=async()=>{refresh.disabled=true;try{const data=await this.load();render(data);status.textContent='Global scores updated.';return true;}catch(error){status.textContent=error.message+(this.cache?' Showing cached scores.':'');return false;}finally{refresh.disabled=false;}};
+      const load=async()=>{const category=this.category;refresh.disabled=true;categorySelect.disabled=true;try{const data=await this.load(category,this.generation);render(data);status.textContent='Global scores updated.';return true;}catch(error){status.textContent=error.message+(this.cache?' Showing cached scores.':'');return false;}finally{refresh.disabled=false;categorySelect.disabled=false;}};
+      categorySelect.addEventListener('change',()=>{this.category=categorySelect.value;this.cache=this.caches[cacheKey(this.category,this.generation)]||null;rows.replaceChildren();if(this.cache)render(this.cache);load();});
       const send=async()=>{const saved=record||this.pending[0];if(!saved)return;retry.disabled=true;status.textContent='Submitting completed run…';try{await this.submit(saved);record=null;retry.hidden=!this.pending.length;const fresh=await load();status.textContent=fresh?'Result submitted. Your best run is highlighted.':'Result submitted. Rankings could not refresh.'+(this.cache?' Showing cached scores.':' Tap Refresh to try again.');}catch(error){status.textContent=error.message+(this.storageAvailable?'':' Storage is blocked: this result lasts only until this tab closes.');retry.hidden=false;}finally{retry.disabled=false;}};
       refresh.addEventListener('click',load);retry.addEventListener('click',send);
       if(record)send();else load();
@@ -1944,6 +2133,8 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     const field=document.createElement('input');field.id='player-name';field.type='text';field.maxLength=16;field.minLength=3;field.autocomplete='nickname';field.spellcheck=false;field.required=true;field.value=MossWorld.validName(rememberedName)?rememberedName:'';field.setAttribute('aria-describedby','name-error');label.append(field);
     const error=document.createElement('p');error.id='name-error';error.className='name-error';error.setAttribute('role','status');error.textContent='3–16 characters: letters, numbers, spaces, _ or -';
     content.insertBefore(label,$('primary-button'));content.insertBefore(error,$('primary-button'));
+    const difficulty=document.createElement('label');difficulty.className='difficulty-choice';difficulty.textContent='DIFFICULTY';
+    const select=document.createElement('select');select.id='run-difficulty';select.setAttribute('aria-label','New run difficulty');for(const value of ['hard','normal']){const option=document.createElement('option');option.value=value;option.textContent=value.toUpperCase();select.append(option);}select.value=world.difficulty==='normal'?'normal':'hard';select.addEventListener('change',()=>world.setDifficulty(select.value));difficulty.append(select);content.insertBefore(difficulty,$('primary-button'));
     const rankings=document.createElement('button');rankings.id='leaderboard-button';rankings.className='menu-button';rankings.textContent='LEADERBOARD';content.append(rankings);
   }
   const toastQueue=[];
@@ -2004,7 +2195,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     screen.className=state==='start'?'screen start-screen':'screen modal';
     $('world-stamp').hidden=state!=='start';
     if(state==='start'){leaderboardOpen=false;content.innerHTML=startMarkup;prepareName();return;}
-    const data=state==='paused'?{eyebrow:'TAKE A BREATHER',title:'A little pause.',copy:'The overworld can wait.<br>Your next adventure is right where you left it.',button:'KEEP EXPLORING',hint:'to resume'}:
+    const data=state==='paused'?{eyebrow:'TAKE A BREATHER',title:'A little pause.',copy:`The overworld can wait.<br>${world.difficulty.toUpperCase()} · Seed ${world.seed??'authored'} · Locked for this run`,button:'KEEP EXPLORING',hint:'to resume'}:
       state==='dead'?{eyebrow:'EVERY EXPLORER TAKES A TUMBLE',title:'Let’s try again.',copy:`Death penalty: −2,000 points (minimum 0).<br>Return to ${world.checkpoint.x>132?'your last checkpoint':world.worldIndex===2?'the first End island':world.worldIndex===1?'the Nether entrance':'the meadow'} with full health.`,button:'BACK TO THE TRAIL',hint:'to retry'}:
       world.secretStatus==='won'?{eyebrow:'THE LAST SHADOW FALLS',title:'TRUE ENDING — WITHER STORM DEFEATED!',copy:'Secret victory · +15,000 points',button:'NEW GAME',hint:'to start a new run'}:
       world.secretStatus==='failed'?{eyebrow:'THREE WORLDS STILL COMPLETED',title:'WITHER STORM — CHALLENGE FAILED',copy:'Your three-world victory and score are preserved. This attempt is spent.',button:'NEW GAME',hint:'to start a new run'}:
@@ -2015,7 +2206,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     if(state==='complete'&&world.worldIndex===2){
       const results=document.createElement('div');results.className='run-results';
       const name=document.createElement('strong');name.textContent=world.playerName;results.append(name);
-      const stats=document.createElement('p');stats.textContent=`Score ${world.score.toLocaleString()} · Gems ${world.gems} · Enemies ${world.enemiesDefeated} · Bosses ${world.bossesDefeated} · Deaths ${world.deaths} · Time ${formatTime(world.completionTime??world.elapsed)}`;results.append(stats);
+      const stats=document.createElement('p');stats.textContent=`${world.difficulty.toUpperCase()} · Score ${world.score.toLocaleString()} · Gems ${world.gems} · Enemies ${world.enemiesDefeated} · Bosses ${world.bossesDefeated} · Deaths ${world.deaths} · Time ${formatTime(world.completionTime??world.elapsed)}`;results.append(stats);
       const bonuses=document.createElement('p');bonuses.textContent='Time bonuses: '+world.timeBonuses.map((v,i)=>`World ${['I','II','III'][i]} +${v}`).join(' · ');results.append(bonuses);
       const rules=document.createElement('p');rules.textContent='Death penalty: −2,000 (minimum 0)'+(world.secretStatus==='won'?' · Wither Storm bonus: +15,000':world.secretStatus==='failed'?' · Secret challenge spent; no score penalty':'');results.append(rules);
       const rankings=document.createElement('section');results.append(rankings);leaderboard.mount(rankings,leaderboard.capture(world));
@@ -2029,7 +2220,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     document.querySelector('.health-panel').classList.toggle('shielded',world.player.shield>0);
     $('pickaxe-timer').hidden=world.player.shield<=0;$('pickaxe-timer').textContent=`⛏ ${(Math.ceil(world.player.shield*10)/10).toFixed(1)}s`;
     $('jump-meter').classList.toggle('used',world.player.jumpsUsed>=2);$('jump-meter').setAttribute('aria-label',world.player.jumpsUsed>=2?'Air jump used':'Air jump ready');
-    $('gem-count').textContent=world.gems;$('score').textContent=world.score.toString().padStart(6,'0');$('world-timer').textContent=formatTime(Math.ceil(world.countdown));$('world-timer').classList.toggle('urgent',world.countdown<30);$('time-label').textContent=formatTime(world.elapsed);
+    $('gem-count').textContent=world.gems;$('score').textContent=world.score.toString().padStart(6,'0');$('enemy-count').textContent=world.enemiesDefeated;$('world-timer').textContent=formatTime(Math.ceil(world.countdown));$('world-timer').classList.toggle('urgent',world.countdown<30);$('time-label').textContent=formatTime(world.elapsed);
     $('progress-fill').style.width=`${Math.min(100,world.player.x/world.level.goal.x*100)}%`;
     $('world-label').textContent=`WORLD ${['I','II','III'][world.worldIndex]} · STAGE ${String(world.stageIndex+1).padStart(2,'0')}`;
     if(world.secretActive()){$('world-label').textContent='SECRET · ONE CHANCE';$('world-timer').textContent='NO RETRY';}
@@ -2075,7 +2266,7 @@ window.CreeperLeaderboardConfig = { url: 'https://gnrsxjcrcdsgbseigeur.supabase.
     renderer.draw(world);updateHUD();updateScreen();if(!test)requestAnimationFrame(frame);
   }
   // Read-only diagnostics are useful when learning how the simulation works.
-  window.mossbound={getSnapshot:()=>({state:world.state,player:{x:world.player.x,y:world.player.y,vx:world.player.vx,vy:world.player.vy,grounded:world.player.grounded,health:world.player.health,jumpsUsed:world.player.jumpsUsed,shield:world.player.shield},camera:world.camera,gems:world.gems,powerups:world.powerups,score:world.score,region:world.region,worldIndex:world.worldIndex,stageIndex:world.stageIndex,world2Unlocked:world.world2Unlocked,elapsed:world.elapsed,deaths:world.deaths,enemiesAlive:world.level.enemies.filter(e=>e.alive).length,enemiesWaiting:world.level.enemies.filter(e=>!e.alive&&!e.respawning).length,enemiesRespawning:world.level.enemies.filter(e=>e.respawning>0).length,hazards:world.level.hazards.map(h=>h.state),checkpoint:{...world.checkpoint},audio:sound.context?.state||'locked',muted:sound.muted,musicScene:sound.musicScene,musicPlaying:sound.musicPlaying,musicPaused:sound.musicPaused,musicVolume:sound.musicVolume,sfxVolume:sound.sfxVolume})};
+  window.mossbound={getSnapshot:()=>({state:world.state,seed:world.seed,difficulty:world.difficulty,generationVersion:world.generationVersion,player:{x:world.player.x,y:world.player.y,vx:world.player.vx,vy:world.player.vy,grounded:world.player.grounded,health:world.player.health,jumpsUsed:world.player.jumpsUsed,shield:world.player.shield},camera:world.camera,gems:world.gems,powerups:world.powerups,score:world.score,enemiesDefeated:world.enemiesDefeated,region:world.region,worldIndex:world.worldIndex,stageIndex:world.stageIndex,world2Unlocked:world.world2Unlocked,elapsed:world.elapsed,deaths:world.deaths,enemiesAlive:world.level.enemies.filter(e=>e.alive).length,enemiesWaiting:world.level.enemies.filter(e=>!e.alive&&!e.respawning).length,enemiesRespawning:world.level.enemies.filter(e=>e.respawning>0).length,hazards:world.level.hazards.map(h=>h.state),checkpoint:{...world.checkpoint},audio:sound.context?.state||'locked',muted:sound.muted,musicScene:sound.musicScene,musicPlaying:sound.musicPlaying,musicPaused:sound.musicPaused,musicVolume:sound.musicVolume,sfxVolume:sound.sfxVolume})};
   requestAnimationFrame(frame);
 })();
 

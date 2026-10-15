@@ -10,4 +10,5 @@
 /backend/*
 !/backend/schema.sql
 !/backend/migration-secret-storm.sql
+!/backend/migration-procedural.sql
 !/backend/README.md
